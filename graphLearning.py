@@ -64,7 +64,7 @@ def naiveGraphEmbeddingAllStudentsInAWeek(transitionDataMatrix_directFollow_week
         graph = graphCreationForSingleStudent(b,activityCodeList)
         if len(graph._node) > 0:
             # continue
-            node2vec = Node2Vec(graph, dimensions=dimensions, walk_length=16, num_walks=100)
+            node2vec = Node2Vec(graph, dimensions=dimensions, walk_length=16, num_walks=10)
             model = node2vec.fit(window=10, min_count=1)
         
             node_embeddings = (
@@ -160,8 +160,11 @@ def most_central_edge(G):
     centrality = betweenness(G, weight="weight")
     return max(centrality, key=centrality.get)
 
-def community_dection_graph(MSTgraph, most_valuable_edge, num_comms = 20):
-    communities_generator = community.girvan_newman(MSTgraph.graph, most_valuable_edge=most_central_edge)
+def community_dection_graph(MSTgraph, most_valuable_edge, num_comms = 20, mst=True):
+    if mst:
+        communities_generator = community.girvan_newman(MSTgraph.graph, most_valuable_edge=most_central_edge)
+    else:
+        communities_generator = community.girvan_newman(MSTgraph, most_valuable_edge=most_central_edge)
     result = []
     for communities in itertools.islice(communities_generator, num_comms):
         result.append(tuple(sorted(c) for c in communities))
@@ -353,5 +356,20 @@ def sankeyVisualise(sankeyData):
     fig = go.Figure(data)
     fig.show()
     plot(fig)
-
     
+def createGraphFromCorrDistance(matrix):
+    G = nx.Graph()
+    for s in matrix.columns:
+        G.add_node(s)
+    
+    checkCouple = []
+    for s in matrix.columns:
+        for i in matrix.index:
+            if (i,s) not in checkCouple:
+                G.add_edge(s,i, weight = matrix.loc[i,s])
+                checkCouple.append((i,s))
+    
+    return G
+    
+
+

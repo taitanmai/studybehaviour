@@ -47,30 +47,30 @@ activityList = ['load','scroll','focus','blur','unload','hashchange','selection'
 basePath = 'G:\\Dataset\\PhD\\'
 
 #extract event log 
-eventLog_ca116 = pd.read_csv('ca116_eventLog_nonfixed.csv')
+eventLog_ca116 = pd.read_csv(basePath + 'ca116_eventLog_nonfixed.csv')
 eventLog_ca116 = eventLog_ca116.drop([1160345])
 eventLog_ca116['time:timestamp'] = pd.to_datetime(eventLog_ca116['time:timestamp'])
 eventLog_ca116 = eventLog_ca116.loc[:, ~eventLog_ca116.columns.str.contains('^Unnamed')]
 # materials = eventLog_ca116.loc[:,['org:resource','concept:name','description']]
 weeksEventLog = [g for n, g in eventLog_ca116.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
-
+a = weeksEventLog[1]
 #process for new activity
 
-lectureList = dataProcessing.getLectureList(eventLog_ca116,['html|py'])
-eventLog_ca116_filtered = eventLog_ca116.loc[eventLog_ca116['description'].str.contains('|'.join(lectureList))]
-# ex1_personal_log_1 = dataProcessing.addConceptPageToLog(ex1_personal_log_1)
+# lectureList = dataProcessing.getLectureList(eventLog_ca116,['html|py'])
+# eventLog_ca116_filtered = eventLog_ca116.loc[eventLog_ca116['description'].str.contains('|'.join(lectureList))]
+eventLog_ca116_filtered = eventLog_ca116.loc[eventLog_ca116['description'].str.contains('.html|.py|einstein|#')]
 
 # eventLog_ca116_filtered = eventLog_ca116_filtered.drop(eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('http|report|ex|dashboard|graphs.html')].index)
 eventLog_ca116_filtered = eventLog_ca116_filtered.drop(eventLog_ca116_filtered.loc[eventLog_ca116_filtered['concept:name'].isin(['click-0','click-1','click-2','click-3'])].index)
-eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('.html|.web'),'pageType'] = 'Read_Lecture_Note' 
+eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('.html|.web'),'pageType'] = 'Lecture' 
 eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('correct|incorrect'),'pageType'] = 'Practice'
-eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('labsheet|instructions'),'pageType'] = 'Practice'
-eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('solution'),'pageType'] = 'Check_solution'
-eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('http|report|dashboard|graphs|log.html'),'pageType'] = 'Admin'
-eventLog_ca116_filtered['pageType'] = eventLog_ca116_filtered['pageType'] .fillna('Practice')
+eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('labsheet|instructions'),'pageType'] = 'Labsheet'
+eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('solution'),'pageType'] = 'Practice'
+eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('http|report|dashboard|graphs|log.html'),'pageType'] = 'General'
+eventLog_ca116_filtered['pageType'] = eventLog_ca116_filtered['pageType'] .fillna('Other')
 
 
-a = eventLog_ca116_filtered.loc[eventLog_ca116_filtered['pageType'] == 'Practice']
+a = eventLog_ca116_filtered.loc[eventLog_ca116_filtered['pageType'] == 'Lecture']
 
 eventLog_ca116_filtered['pageType'].unique()
 eventLog_ca116_filtered['pageType'].value_counts()

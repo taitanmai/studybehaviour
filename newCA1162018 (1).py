@@ -44,7 +44,7 @@ import plotly.graph_objects as go
 
 activityList = ['load','scroll','focus','blur','unload','hashchange','selection']
 
-basePath = 'D:\\Dataset\\PhD\\'
+basePath = 'G:\\Dataset\\PhD\\'
 
 #extract event log 
 eventLog_ca116 = pd.read_csv(basePath + 'ca116_eventLog_nonfixed.csv')
@@ -72,8 +72,8 @@ a = eventLog_ca116_filtered.loc[eventLog_ca116_filtered['pageName'] == 'General'
 eventLog_ca116_filtered.rename(columns={'concept:instance':'concept:instance1',
                                    'concept:name':'concept:name1',
                                    'case:concept:name' : 'case:concept:name1'},  inplace=True)
-eventLog_ca116_filtered['concept:instance'] = eventLog_ca116_filtered['pageName'] + '*' + eventLog_ca116_filtered['concept:instance1']
-eventLog_ca116_filtered['concept:name'] = eventLog_ca116_filtered['pageName'] + '*' + eventLog_ca116_filtered['concept:instance1']
+eventLog_ca116_filtered['concept:instance'] = eventLog_ca116_filtered['pageName']
+eventLog_ca116_filtered['concept:name'] = eventLog_ca116_filtered['pageName']
 eventLog_ca116_filtered['date'] = eventLog_ca116_filtered['time:timestamp'].dt.date
 
 eventLog_ca116_filtered['case:concept:name'] = eventLog_ca116_filtered['date'].astype(str) + '-' + eventLog_ca116_filtered['org:resource'].astype(str)
@@ -97,8 +97,6 @@ materialAccessedByWeek['pageType'] = ''
 materialAccessedByWeek = materialAccessedByWeek.fillna(0)
 materialAccessedByWeek.to_csv(basePath + 'materialAccessedByWeek_ca116_2018.csv')
 
-materialAccessedByWeek = pd.read_csv(basePath + 'materialAccessedByWeek_ca116_2018.csv', index_col=0)
-
 materialAccessedByWeek['sumOfpageActivity'] = materialAccessedByWeek.sum(axis = 1, skipna = True)
 accessedPageSummary = materialAccessedByWeek.loc[:,['pageType','sumOfpageActivity']].groupby([pd.Grouper('pageType')]).sum()
 accessedPageSummary['perc']= accessedPageSummary['sumOfpageActivity']/accessedPageSummary['sumOfpageActivity'].sum()
@@ -107,12 +105,12 @@ weeksEventLog_filtered_pageType = []
 for w in range(1,13):
     tmp = weeksEventLog_filtered[w].merge(materialAccessedByWeek.loc[:,['pageType','ofWeek']], left_on=weeksEventLog_filtered[w].pageName, 
                                     right_on=materialAccessedByWeek.loc[:,['pageType']].index)
-    tmp['pageTypeWeek'] = tmp['pageType'] + '_' + tmp['ofWeek'].astype(str)
-    tmp['concept:name'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
-    tmp['concept:instance'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
+    tmp['pageTypeWeek'] = tmp['pageType'] + '_' + tmp['ofWeek']
+    tmp['concept:name'] = tmp['pageType'] + '*' + tmp['concept:name1']
+    tmp['concept:instance'] = tmp['pageType'] + '*' + tmp['concept:instance1']
     weeksEventLog_filtered_pageType.append(tmp)
     
-a = weeksEventLog_filtered_pageType[6].sort_values(['case:concept:name','time:timestamp'])
+a = weeksEventLog_filtered_pageType[0]
 
 dataUpload = pd.read_csv(basePath + 'ca116_uploads.csv')
 dataUpload['date'] = pd.to_datetime(dataUpload.date)
@@ -208,6 +206,13 @@ for week in range(0,12):
     cummulativeExerciseWeeks.append(cummulativeResult)
     
     
+ex1_excellent = graphLearning.mapNewLabel(ex1_excellent, reLabelIndex)
+ex1_weak = graphLearning.mapNewLabel(ex1_weak, reLabelIndex)
+ex2_excellent = graphLearning.mapNewLabel(ex2_excellent, reLabelIndex)
+ex2_weak = graphLearning.mapNewLabel(ex2_weak, reLabelIndex)
+ex3_excellent = graphLearning.mapNewLabel(ex3_excellent, reLabelIndex)
+ex3_weak = graphLearning.mapNewLabel(ex3_weak, reLabelIndex)
+
 assessment_label = assessment.copy()
 assessment_label = graphLearning.mapNewLabel(assessment, reLabelIndex)
 
@@ -254,7 +259,7 @@ for w in range(0,12):
     print('Week ' + str(w) + '...')
     workingWeekLog.append(weeksEventLog_filtered_pageType[w])
     LogPageactivityCountByUser =  pd.concat(workingWeekLog) #weeksEventLog_filtered[w]
-    LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'concept:instance')
+    LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'pageTypeWeek')
     LogPageactivityCountByUser = LogPageactivityCountByUser.fillna(0)
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
     LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
@@ -276,24 +281,13 @@ for w in range(0,12):
     activityDataMatrixWeeks_pageTypeWeek[w] = temp
 
 a =  activityDataMatrixWeeks_pageTypeWeek[11].corr()
-a1 = a['perCorrect3A'].sort_values()
-
-a =  activityDataMatrixWeeks_pageTypeWeek[7].corr()
-a2 = a['perCorrect2A'].sort_values()
-
-a =  activityDataMatrixWeeks_pageTypeWeek[3].corr()
-a3 = a['perCorrect1A'].sort_values()
-
-examCorrelation = pd.concat([a1,a2,a3], axis=1)
-pageTypeWeekList = pd.concat([weeksEventLog_filtered_pageType[i] for i in range(0,12)])['concept:instance'].unique()
-examCorrelation = examCorrelation.loc[examCorrelation.index.isin(pageTypeWeekList)]
+a['perCorrect3A'].sort_values()
 
 #correlation analysis between exam, practice and activity
-w = 7
-for col1 in pageTypeWeekList:
-    if col1 in activityDataMatrixWeeks_pageTypeWeek[w]
-    for col2 in ['perCorrect2A']:
-        p = stats.pearsonr(activityDataMatrixWeeks_pageTypeWeek[w][col1].values,activityDataMatrixWeeks_pageTypeWeek[w][col2].values)
+w = 11
+for col1 in ['Practice','General','Lecture','Labsheet']:
+    for col2 in ['correct','perCorrect3A']:
+        p = stats.pearsonr(activityDataMatrixWeeks_pageType[w][col1].values,activityDataMatrixWeeks_pageType[w][col2].values)
         print(col1 + '-' + col2 + ':' + str(p[0]) + ' - ' +str(p[1]))
         
 for week in range(0,12):
@@ -327,7 +321,7 @@ for week in range(0,12):
     print('Week: ' + str(week) + '...')
     workingWeekLog.append(weeksEventLog_filtered_pageType[week])
     Log = pd.concat(workingWeekLog) 
-    tempTransition = FCAMiner.transitionDataMatrixConstruct_directFollow(Log,'concept:instance',[]).fillna(0)
+    tempTransition = FCAMiner.transitionDataMatrixConstruct_directFollow(Log,'pageTypeWeek',[]).fillna(0)
     full_transitionDataMatrixWeeks.append(tempTransition)   
     tempTransition = tempTransition.groupby([pd.Grouper(key='user')]).sum()         
     transitionDataMatrixWeeks.append(tempTransition)
@@ -337,16 +331,12 @@ for w in range(0,12):
     transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, (transitionDataMatrixWeeks[w] != 0).any(axis=0)]
     
 for w in range(0,12):
-    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeekAction_w'+str(w)+'.csv',index=True)
+    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w'+str(w)+'.csv',index=True)
 
-for w in range(0,12):    
-    transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(transitionDataMatrixWeeks[w], reLabelIndex)
-
-    
 #read csv iff neeeded
 transitionDataMatrixWeeks = []
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A.index
     elif w in [4,5,6,7]:
@@ -355,58 +345,36 @@ for w in range(0,12):
         studentList = assessment3A.index
     temp = temp.loc[temp.index.isin(studentList)]
     temp = graphLearning.mapNewLabel(temp, reLabelIndex)
-    # temp = temp.drop(['Practice_0-Practice_0'],axis=1)
+    temp = temp.drop(['Practice_0-Practice_0'],axis=1)
     # if w == 1:
     #     temp = temp.drop([8])
     transitionDataMatrixWeeks.append(temp) 
-    
 
 
-transitionDataMatrixWeeks_directFollow_standardised = []    
+
+#transpose transition data matrix
 for w in range(0,12):
-    transitionDataMatrixWeeks_directFollow_standardised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w]))
+    transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].T
 
 transitionDataMatrixWeeks_directFollow_normalised = []    
 for w in range(0,12):
-    transitionDataMatrixWeeks_directFollow_normalised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w], 'normalised'))
+    transitionDataMatrixWeeks_directFollow_normalised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w]))
 
-#correlation heatmap with exam
-w = 11
-a = transitionDataMatrixWeeks[w].merge(assessment3A.loc[:,['perCorrect3A']], left_on=transitionDataMatrixWeeks[w].index, right_on=assessment3A.index).set_index('key_0')
-b = a.corr()
-b1 = b['perCorrect3A'].sort_values()
-ax = sns.heatmap(a.corr(),xticklabels=False, yticklabels=False)    
-
-#transpose transition data matrix
-transitionDataMatrixWeeks_transposed = []
-transitionDataMatrixWeeks_directFollow_normalised_transposed = []
-transitionDataMatrixWeeks_directFollow_standardised_transposed = []
-for w in range(0,12):
-    transitionDataMatrixWeeks_transposed.append(transitionDataMatrixWeeks[w].T)
-    transitionDataMatrixWeeks_directFollow_normalised_transposed.append(transitionDataMatrixWeeks_directFollow_normalised[w].T)
-    transitionDataMatrixWeeks_directFollow_standardised_transposed.append(transitionDataMatrixWeeks_directFollow_standardised[w].T)
-
-columns = transitionDataMatrixWeeks[11].columns[10:20]
-pd.plotting.scatter_matrix(transitionDataMatrixWeeks[11].loc[:,columns], alpha=0.2, ax=ax)
-
-
-
-transitionDataMatrixWeeks_directFollow_normalised[11].plot(x = 0 , y= 1, kind="scatter")
 
 # correlation processing    
 corrList = []
 corrDistanceList = []
 for w in range(0,12):
-    corrTemp = transitionDataMatrixWeeks_transposed[w].corr()
+    corrTemp = transitionDataMatrixWeeks[w].corr()
     corrList.append(corrTemp)
-    corrDistance = (2*(1 - corrTemp)).apply(np.sqrt)
+    corrDistance = (0.5*(1 - corrTemp)).apply(np.sqrt)
     corrDistanceList.append(corrDistance)
     
 #correlation processing    
 corrList_dataNormalised = []
 # corrDistanceList_dataNormalised = []
 for w in range(0,12):
-    corrTemp = transitionDataMatrixWeeks_directFollow_standardised_transposed[w].corr()
+    corrTemp = transitionDataMatrixWeeks_directFollow_normalised[w].corr()
     corrList_dataNormalised.append(corrTemp)
     # corrDistance = (0.5*(1 - corrTemp)).apply(np.sqrt)
     # corrDistanceList_dataNormalised.append(corrDistance)
@@ -414,16 +382,16 @@ for w in range(0,12):
 graph_all_weeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
-    matrix = corrList_dataNormalised[w]
+    matrix = corrList[w]
     risk_estimators = ml.portfolio_optimization.RiskEstimators()
-    tn_relation = transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[0] / transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[1]
+    tn_relation = transitionDataMatrixWeeks_directFollow_normalised[w].shape[0] / transitionDataMatrixWeeks_directFollow_normalised[w].shape[1]
     # The bandwidth of the KDE kernel
     kde_bwidth = 0.01
     # Finding the Вe-noised Сovariance matrix
     # denoised_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth)
     # denoised_matrix_byLib = pd.DataFrame(denoised_matrix_byLib, index=matrix.index, columns=matrix.columns) denoise_method='target_shrink',
     
-    detoned_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth=kde_bwidth, detone=True)
+    detoned_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth=kde_bwidth,  detone=True)
     # detoned_matrix_byLib = matrix #no denoised and detoned
     
     detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
@@ -437,7 +405,7 @@ for w in range(0,12):
     print('Week ' + str(w) + '...')
     matrix = corrList[w]
     risk_estimators = ml.portfolio_optimization.RiskEstimators()
-    tn_relation = transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[0] / transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[1]
+    tn_relation = transitionDataMatrixWeeks_directFollow_normalised[w].shape[0] / transitionDataMatrixWeeks_directFollow_normalised[w].shape[1]
     # The bandwidth of the KDE kernel
     kde_bwidth = 0.01
     # Finding the Вe-noised Сovariance matrix
@@ -453,31 +421,12 @@ for w in range(0,12):
     # graphBuild = nx.from_pandas_adjacency(distance_matrix)   
     graph_all_weeks_not_cleaned.append(graphBuild)
     
-
-graph_all_weeks_msf = []
-corrDistance_detoned = []
-for w in range(0,12):
-    print('Week ' + str(w) + '...')
-    matrix = corrList_dataNormalised[w]
-    risk_estimators = ml.portfolio_optimization.RiskEstimators()
-    tn_relation = transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[0] / transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[1]
-    # The bandwidth of the KDE kernel
-    kde_bwidth = 0.01
-    detoned_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth=kde_bwidth, detone=True)
-    # detoned_matrix_byLib = matrix #no denoised and detoned
-    
-    detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
-    distance_matrix = (2*(1 - detoned_matrix_byLib)).apply(np.sqrt)
-    corrDistance_detoned.append(distance_matrix)
-    g = graphLearning.createGraphFromCorrDistance(distance_matrix)
-    graph_all_weeks_msf.append(g)
-
     
 #community detection
 communityListWeeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')      
-    num_comms = len(graph_all_weeks_msf[w])
+    num_comms = len(graph_all_weeks[w].graph._node)
     communityListWeeks.append(graphLearning.community_dection_graph(graph_all_weeks[w], most_valuable_edge=graphLearning.most_central_edge, num_comms=num_comms))
 
 communityListWeeks_not_cleaned = []
@@ -555,16 +504,9 @@ for w in range(0,12):
 # excellentList = labsheetActiveWeeks[w]
 # weakList = labsheetLessActiveWeeks[w]
 
-ex1_excellent = graphLearning.mapNewLabel(ex1_excellent, reLabelIndex)
-ex1_weak = graphLearning.mapNewLabel(ex1_weak, reLabelIndex)
-ex2_excellent = graphLearning.mapNewLabel(ex2_excellent, reLabelIndex)
-ex2_weak = graphLearning.mapNewLabel(ex2_weak, reLabelIndex)
-ex3_excellent = graphLearning.mapNewLabel(ex3_excellent, reLabelIndex)
-ex3_weak = graphLearning.mapNewLabel(ex3_weak, reLabelIndex)
-
-excellentList = ex3_excellent.index
-weakList = ex3_weak.index
-graphLearning.visualiseMSTGraph(graph_all_weeks_msf[11], excellentList, weakList , reLabelIndex)  
+excellentList = ex2_excellent.index
+weakList = ex2_weak.index
+graphLearning.visualiseMSTGraph(graph_all_weeks[7], excellentList, weakList , reLabelIndex)  
 
 
 
@@ -575,14 +517,14 @@ graphLearning.visualiseMSTGraph(graph_all_weeks_msf[11], excellentList, weakList
 node_embeddings_weeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
-    node2vec = Node2Vec(graph_all_weeks_msf[w], dimensions=64, walk_length=8, num_walks=15, p=0.1, q=1)
+    node2vec = Node2Vec(graph_all_weeks[w].graph, dimensions=128, walk_length=8, num_walks=15, p=0.1, q=1)
     model = node2vec.fit(window=8, min_count=1)    
     nodeList = model.wv.index2word
     node_embeddings = [list(model.wv.get_vector(n)) for n in nodeList] # numpy.ndarray of size number of nodes times embeddings dimensionality        
     nodeList = list(map(int,model.wv.index2word)) #convert string node to int node
     node_embeddings = pd.DataFrame(node_embeddings, index = nodeList)
-    node_embeddings = node_embeddings.merge(cummulativeExerciseWeeks[w]['correct'],left_on=node_embeddings.index,
-                                            right_on=cummulativeExerciseWeeks[w]['correct'].index).set_index('key_0')
+    # node_embeddings = node_embeddings.merge(cummulativeExerciseWeeks[w]['correct'],left_on=node_embeddings.index,
+    #                                         right_on=cummulativeExerciseWeeks[w]['correct'].index).set_index('key_0')
     # scaler = StandardScaler()
     # node_embeddings = pd.DataFrame(scaler.fit_transform(node_embeddings), index=node_embeddings.index)
     node_embeddings_weeks.append(node_embeddings)
@@ -644,11 +586,6 @@ plt.show()
 
 
 
-#--------------- PREDCTION --------------------------------------------------#
-#---------------------------------------------------------------------------------#
-
-#data preparation for prediction
-#node_embeddings week
 
 workingWeekExcercise = []
 prediction_transition = []
@@ -666,9 +603,7 @@ for week in range(0,12):
         weak = ex3_weak.index           
    
     cummulativeResult = []
-    
-    dataForPrediction = node_embeddings_weeks
-    predictionResult = PredictionResult.predict_proba_all_algorithms_data_ready(dataForPrediction[week], excellent, weak, cummulativeResult)
+    predictionResult = PredictionResult.predict_proba_all_algorithms_data_ready(node_embeddings_weeks[week], excellent, weak, cummulativeResult)
     prediction_transition.append(predictionResult)
 
 reportArray_transition = []
@@ -690,9 +625,7 @@ predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week
                                                      'f1_score','precision','recall',
                                                      'roc_auc','cv mean','cv_mean_f1','cv_mean_recall']) 
 
-title_transition = 'Graph embeddings - Node2Vec - accumulated data - Sum - correlation distance'
+title_transition = 'Graph embeddings - Node2Vec - accumulated data - Sum - 1 as passed, 0 as failed with practice data'
 algorithmList = []
 # algorithmList = []
-PredictionResult.algorithmComparisonGraph('cv mean',predictionReport_transition,algorithmList, title_transition)
-
-community.greedy_modularity_communities(graph_all_weeks[11].graph)
+PredictionResult.algorithmComparisonGraph('roc_auc',predictionReport_transition,algorithmList, title_transition)

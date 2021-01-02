@@ -82,9 +82,9 @@ def activityTimeDataMatrixContruct(df, date1 = '', date2 = ''): #Inprogress
             result = tempAct
     return result
 
-def transitionDataMatrixConstruct_directFollow(dfEventLog, originalElements = [], activityCount = False, mode='count'):
+def transitionDataMatrixConstruct_directFollow(dfEventLog, column, originalElements = [], activityCount = False, mode='count'):
     if len(originalElements) == 0:
-        originalElements = dfEventLog['concept:name'].unique()
+        originalElements = dfEventLog[column].unique()
     columns = []
     # columns.append('case')
     # columns.append('startDate')
@@ -110,8 +110,8 @@ def transitionDataMatrixConstruct_directFollow(dfEventLog, originalElements = []
         # newRow['startDate'] = row['time:timestamp'][0]
         # newRow['endDate'] = row['time:timestamp'][len(row)-1]
         # newRow['case'] = index
-        for i in range(len(row['concept:instance'])-1):
-            key = row['concept:instance'][i]+'-'+row['concept:instance'][i+1]
+        for i in range(len(row[column])-1):
+            key = row[column][i]+'-'+row[column][i+1]
             if key in columns:
                 if mode == 'count':
                     flag = 1
@@ -129,11 +129,11 @@ def transitionDataMatrixConstruct_directFollow(dfEventLog, originalElements = []
     if activityCount:
         result = []
         for al in originalElements:
-            tempAct = dfEventLog.loc[dfEventLog['concept:name'] == al]
-            tempAct = tempAct.groupby([pd.Grouper(key='case:concept:name')]).agg({"concept:name": "count"})
-            tempAct[al] = tempAct['concept:name']
+            tempAct = dfEventLog.loc[dfEventLog[column] == al]
+            tempAct = tempAct.groupby([pd.Grouper(key='case:concept:name')]).agg({column: "count"})
+            tempAct[al] = tempAct[column]
 
-            cols = ['concept:name'] #dfEventLog.drop(['case:concept:name'], axis=1).columns
+            cols = [column] #dfEventLog.drop(['case:concept:name'], axis=1).columns
             tempAct.drop(cols, axis=1, inplace=True)    
             if len(result) > 0:
                 result = pd.concat([result,tempAct], axis=1)    

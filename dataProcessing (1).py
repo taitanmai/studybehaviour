@@ -4,7 +4,7 @@ import os
 import re
 import json
 from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import MinMaxScaler
+
 
 def get_event_log_by_file(basePath, m,u,d):
     corePath = basePath + 'anon/activity/' #'2020-06-29-einstein/activity/'
@@ -412,7 +412,7 @@ def addConceptPageToLog(dfEventLog):
     dfEventLog['page'] = pages
     return dfEventLog
 
-# basePath = 'D:\\Dataset\\PhD\\'  
+# basePath = 'G:\\Dataset\\PhD\\'  
 # result = extractUploadsData_2019(basePath, module = ['ca177'])   
 # result.to_csv(basePath + "ca177_uploads_2019.csv",index=False)    
 
@@ -431,36 +431,21 @@ def addConceptPageToLog(dfEventLog):
 
 
 
-def normaliseWeeklyData(data, transformedType='standardised'):
+def normaliseWeeklyData(data):
     result = []
-    if transformedType == 'standardised':
-        for w in range(len(data)):
-            x = data[w].values        
-            scaler = StandardScaler()
-            scaler.fit(x)
-            x = scaler.transform(x)
-            result.append(pd.DataFrame(x,columns=data[w].columns, index = data[w].index))
-    elif transformedType == 'normalised':
-        for w in range(len(data)):
-            x = data[w].values        
-            scaler = MinMaxScaler()
-            scaler.fit(x)
-            x = scaler.transform(x)
-            result.append(pd.DataFrame(x,columns=data[w].columns, index = data[w].index))
-        
-    return result
-        
-def normaliseData(data, transformedType='standardised'):
-    if transformedType =='standardised':
-        x = data.values
+    for w in range(len(data)):
+        x = data[w].values
         scaler = StandardScaler()
         scaler.fit(x)
         x = scaler.transform(x)
-    elif  transformedType =='normalised':
-        x = data.values
-        scaler = MinMaxScaler()
-        scaler.fit(x)
-        x = scaler.transform(x)
+        result.append(pd.DataFrame(x,columns=data[w].columns, index = data[w].index))
+    return result
+        
+def normaliseData(data):
+    x = data.values
+    scaler = StandardScaler()
+    scaler.fit(x)
+    x = scaler.transform(x)
     return pd.DataFrame(x, columns = data.columns, index = data.index)
 
 def reLabelStudentId(studentList):
