@@ -398,7 +398,7 @@ def evaluateTestData(model, X_test, y_test):
     accuracy_score = metrics.accuracy_score(y_test, y_pred),
     f1_score = metrics.f1_score(y_test, y_pred),
     precision_score = metrics.precision_score(y_test, y_pred),
-    recall_score = metrics.recall_score(y_test, y_pred),
+    recall_score = metrics.recall_score(y_test, y_pred, pos_label=0),
     roc_auc = metrics.roc_auc_score(y_test, y_pred)
     classification_report1 = metrics.classification_report(y_test,y_pred)
     

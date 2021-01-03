@@ -254,11 +254,15 @@ for w in range(0,12):
     print('Week ' + str(w) + '...')
     workingWeekLog.append(weeksEventLog_filtered_pageType[w])
     LogPageactivityCountByUser =  pd.concat(workingWeekLog) #weeksEventLog_filtered[w]
-    LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'concept:instance')
+    LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'pageTypeWeek')
     LogPageactivityCountByUser = LogPageactivityCountByUser.fillna(0)
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
-    LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
+    # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
+
+
+for w in range(0,12):
+    activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_w'+str(w)+'.csv',index=True)
     
 for w in range(0,12):
     temp = activityDataMatrixWeeks_pageTypeWeek[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageTypeWeek[w].index, right_on=cummulativeExerciseWeeks[w].index)
@@ -327,7 +331,7 @@ for week in range(0,12):
     print('Week: ' + str(week) + '...')
     workingWeekLog.append(weeksEventLog_filtered_pageType[week])
     Log = pd.concat(workingWeekLog) 
-    tempTransition = FCAMiner.transitionDataMatrixConstruct_directFollow(Log,'concept:instance',[]).fillna(0)
+    tempTransition = FCAMiner.transitionDataMatrixConstruct_directFollow(Log,'pageTypeWeek',[]).fillna(0)
     full_transitionDataMatrixWeeks.append(tempTransition)   
     tempTransition = tempTransition.groupby([pd.Grouper(key='user')]).sum()         
     transitionDataMatrixWeeks.append(tempTransition)
@@ -337,7 +341,7 @@ for w in range(0,12):
     transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, (transitionDataMatrixWeeks[w] != 0).any(axis=0)]
     
 for w in range(0,12):
-    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeekAction_w'+str(w)+'.csv',index=True)
+    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w'+str(w)+'.csv',index=True)
 
 for w in range(0,12):    
     transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(transitionDataMatrixWeeks[w], reLabelIndex)
