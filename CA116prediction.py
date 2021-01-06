@@ -132,7 +132,7 @@ for week in range(0,12):
 
 transitionDataMatrixWeeks = []
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A.index
     elif w in [4,5,6,7]:
@@ -148,7 +148,7 @@ for w in range(0,12):
 
 activityDataMatrixWeeks_pageTypeWeek = []    
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A.index
     elif w in [4,5,6,7]:
@@ -160,6 +160,9 @@ for w in range(0,12):
     # if w == 1:
     #     temp = temp.drop([8])
     activityDataMatrixWeeks_pageTypeWeek.append(temp) 
+
+
+activityDataMatrixWeeks_pageTypeWeek[11].hist(bins=50,density=True)
     
 #import data for ca1162019:
 dataUpload_2019 = pd.read_csv(basePath + 'ca116_uploads_2019.csv')
@@ -249,7 +252,7 @@ for week in range(0,12):
 
 transitionDataMatrixWeeks_2019 = []
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A_2019.index
     elif w in [4,5,6,7]:
@@ -264,7 +267,7 @@ for w in range(0,12):
     
 activityDataMatrixWeeks_pageTypeWeek_2019 = []    
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeek_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A_2019.index
     elif w in [4,5,6,7]:
@@ -302,26 +305,47 @@ ex3_weak_20182019 = pd.concat([ex3_weak, ex3_weak_2019])
 #normalised and standardised
 transitionDataMatrixWeeks_20182019_directFollow_standardised = []    
 for w in range(0,12):
-    transitionDataMatrixWeeks_20182019_directFollow_standardised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks_20182019[w]))
+    transitionDataMatrixWeeks_20182019_directFollow_standardised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks_20182019[w].T))
 
 transitionDataMatrixWeeks_20182019_directFollow_normalised = []    
 for w in range(0,12):
-    transitionDataMatrixWeeks_20182019_directFollow_normalised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks_20182019[w], 'normalised'))
+    transitionDataMatrixWeeks_20182019_directFollow_normalised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks_20182019[w].T, 'normalised'))
+
 
 
 #transpose transition data matrix
 transitionDataMatrixWeeks_20182019_transposed = []
-transitionDataMatrixWeeks_20182019_directFollow_normalised_transposed = []
-transitionDataMatrixWeeks_20182019_directFollow_standardised_transposed = []
+# transitionDataMatrixWeeks_20182019_directFollow_normalised_transposed = []
+# transitionDataMatrixWeeks_20182019_directFollow_standardised_transposed = []
 for w in range(0,12):
     transitionDataMatrixWeeks_20182019_transposed.append(transitionDataMatrixWeeks_20182019[w].T)
-    transitionDataMatrixWeeks_20182019_directFollow_normalised_transposed.append(transitionDataMatrixWeeks_20182019_directFollow_normalised[w].T)
-    transitionDataMatrixWeeks_20182019_directFollow_standardised_transposed.append(transitionDataMatrixWeeks_20182019_directFollow_standardised[w].T)  
+    # transitionDataMatrixWeeks_20182019_directFollow_normalised_transposed.append(transitionDataMatrixWeeks_20182019_directFollow_normalised[w].T)
+    # transitionDataMatrixWeeks_20182019_directFollow_standardised_transposed.append(transitionDataMatrixWeeks_20182019_directFollow_standardised[w].T)  
 
+#merge data 2018 2019 for activity data matrix
 activityDataMatrixWeeks_20182019 = []
 for w in range(0,12):
     activityDataMatrixWeeks_20182019.append(pd.concat([activityDataMatrixWeeks_pageTypeWeek[w],activityDataMatrixWeeks_pageTypeWeek_2019[w]]))
     activityDataMatrixWeeks_20182019[w] = activityDataMatrixWeeks_20182019[w].fillna(0)
+
+activityDataMatrixWeeks_20182019_standardised = []    
+for w in range(0,12):
+    activityDataMatrixWeeks_20182019_standardised.append(dataProcessing.normaliseData(activityDataMatrixWeeks_20182019[w]))
+
+activityDataMatrixWeeks_20182019_normalised = []    
+for w in range(0,12):
+    activityDataMatrixWeeks_20182019_normalised.append(dataProcessing.normaliseData(activityDataMatrixWeeks_20182019[w], 'normalised'))
+
+activityDataMatrixWeeks_20182019_normalised[11].hist(bins=50)
+
+#transpose activity data matrix
+activityDataMatrixWeeks_20182019_transposed = []
+activityDataMatrixWeeks_20182019_normalised_transposed = []
+activityDataMatrixWeeks_20182019_standardised_transposed = []
+for w in range(0,12):
+    activityDataMatrixWeeks_20182019_transposed.append(activityDataMatrixWeeks_20182019[w].T)
+    activityDataMatrixWeeks_20182019_normalised_transposed.append(activityDataMatrixWeeks_20182019_normalised[w].T)
+    activityDataMatrixWeeks_20182019_standardised_transposed.append(activityDataMatrixWeeks_20182019_standardised[w].T)  
 
 
     
@@ -329,7 +353,7 @@ for w in range(0,12):
 corrList = []
 corrDistanceList = []
 for w in range(0,12):
-    corrTemp = transitionDataMatrixWeeks_20182019_transposed[w].corr()
+    corrTemp = transitionDataMatrixWeeks_20182019_directFollow_standardised[w].corr()
     corrList.append(corrTemp)
     corrDistance = (2*(1 - corrTemp)).apply(np.sqrt)
     corrDistanceList.append(corrDistance)
@@ -340,11 +364,12 @@ transitionDataMatrixWeeks_20182019_transposed[w].loc[:,transitionDataMatrixWeeks
 corrList_dataNormalised = []
 # corrDistanceList_dataNormalised = []
 for w in range(0,12):
-    corrTemp = transitionDataMatrixWeeks_20182019_directFollow_normalised_transposed[w].corr()
+    corrTemp = transitionDataMatrixWeeks_20182019_directFollow_normalised[w].corr()
     corrList_dataNormalised.append(corrTemp)
     # corrDistance = (0.5*(1 - corrTemp)).apply(np.sqrt)
     # corrDistanceList_dataNormalised.append(corrDistance)
-
+    
+    
 graph_all_weeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
@@ -454,6 +479,61 @@ for w in range(0,12):
     g = graphLearning.createGraphFromCorrDistance(distance_matrix)
     graph_all_weeks_msf_corrList_notClean.append(g)
 
+
+#graph for activity data matrix
+
+# correlation for activity matrix
+corrList_activityDataMatrix = []
+corrDistanceList_activityDataMatrix = []
+for w in range(0,12):
+    corrTemp = activityDataMatrixWeeks_20182019_transposed[w].corr()
+    corrList_activityDataMatrix.append(corrTemp)
+    corrDistance = (2*(1 - corrTemp)).apply(np.sqrt)
+    corrDistanceList_activityDataMatrix.append(corrDistance)
+    
+graph_all_weeks = []
+for w in range(0,12):
+    print('Week ' + str(w) + '...')
+    matrix = corrList_activityDataMatrix[w]
+    risk_estimators = ml.portfolio_optimization.RiskEstimators()
+    tn_relation = activityDataMatrixWeeks_20182019_transposed[w].shape[0] / activityDataMatrixWeeks_20182019_transposed[w].shape[1]
+    # The bandwidth of the KDE kernel
+    kde_bwidth = 0.01
+    # Finding the Вe-noised Сovariance matrix
+    # denoised_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth)
+    # denoised_matrix_byLib = pd.DataFrame(denoised_matrix_byLib, index=matrix.index, columns=matrix.columns) denoise_method='target_shrink',
+    
+    detoned_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth=kde_bwidth, detone=True)
+    # detoned_matrix_byLib = matrix #no denoised and detoned
+    
+    detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
+    distance_matrix = (2*(1 - detoned_matrix_byLib)).apply(np.sqrt)
+    graphBuild = MST(distance_matrix, 'distance')
+    # graphBuild = nx.from_pandas_adjacency(distance_matrix)   
+    graph_all_weeks.append(graphBuild)
+
+graph_all_weeks_not_cleaned = []
+for w in range(0,12):
+    print('Week ' + str(w) + '...')
+    matrix = corrList_activityDataMatrix[w]
+    risk_estimators = ml.portfolio_optimization.RiskEstimators()
+    tn_relation = transitionDataMatrixWeeks_20182019_directFollow_normalised_transposed[w].shape[0] / transitionDataMatrixWeeks_20182019_directFollow_normalised_transposed[w].shape[1]
+    # The bandwidth of the KDE kernel
+    kde_bwidth = 0.01
+    # Finding the Вe-noised Сovariance matrix
+    # denoised_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth)
+    # denoised_matrix_byLib = pd.DataFrame(denoised_matrix_byLib, index=matrix.index, columns=matrix.columns)
+    
+    # detoned_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth=kde_bwidth, denoise_method='target_shrink', detone=True)
+    detoned_matrix_byLib = matrix #no denoised and detoned
+    
+    detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
+    distance_matrix = (2*(1 - detoned_matrix_byLib)).apply(np.sqrt)
+    graphBuild = MST(distance_matrix, 'distance')
+    # graphBuild = nx.from_pandas_adjacency(distance_matrix)   
+    graph_all_weeks_not_cleaned.append(graphBuild)
+
+
 #----------------------------------------------
 #Node embedding analysis    
 #----------------------------------------------
@@ -461,7 +541,7 @@ for w in range(0,12):
 node_embeddings_weeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
-    node2vec = Node2Vec(graph_all_weeks[w].graph, dimensions=64, walk_length=8, num_walks=15, p=0.1, q=1)
+    node2vec = Node2Vec(graph_all_weeks[w].graph, dimensions=128, walk_length=10, num_walks=20, p=0.5, q=1)
     model = node2vec.fit(window=8, min_count=1)    
     nodeList = model.wv.index2word
     node_embeddings = [list(model.wv.get_vector(n)) for n in nodeList] # numpy.ndarray of size number of nodes times embeddings dimensionality        
@@ -537,7 +617,7 @@ plt.show()
 node_embeddings_weeks_uncleaned = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
-    node2vec = Node2Vec(graph_all_weeks_msf_corrList_notClean[w], dimensions=64, walk_length=8, num_walks=15, p=0.1, q=1)
+    node2vec = Node2Vec(graph_all_weeks_not_cleaned[w].graph, dimensions=64, walk_length=8, num_walks=15, p=0.1, q=1)
     model = node2vec.fit(window=8, min_count=1)    
     nodeList = model.wv.index2word
     node_embeddings = [list(model.wv.get_vector(n)) for n in nodeList] # numpy.ndarray of size number of nodes times embeddings dimensionality        
@@ -678,7 +758,7 @@ for w in range(0,12):
     trainingData['result_exam_1'] = 2
     trainingData.loc[trainingData.index.isin(excellent),['result_exam_1']] = 1
     trainingData.loc[trainingData.index.isin(weak),['result_exam_1']] = 0
-    X_train_weeks.append(trainingData.loc[:,['correct']])
+    X_train_weeks.append(trainingData.loc[:,columns])
     y_train_weeks.append(trainingData['result_exam_1'])
 
 # a = trainingData.corr()
@@ -701,7 +781,7 @@ for w in range(0,12):
     testData['result_exam_1'] = 2
     testData.loc[testData.index.isin(excellent),['result_exam_1']] = 1
     testData.loc[testData.index.isin(weak),['result_exam_1']] = 0
-    X_test_weeks.append(testData.loc[:,['correct']])
+    X_test_weeks.append(testData.loc[:,columns])
     y_test_weeks.append(testData['result_exam_1'])
     
 trainModels = []
@@ -733,10 +813,10 @@ predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week
                                                      'f1_score','precision','recall',
                                                      'roc_auc']) 
 
-title_transition = 'Graph embeddings - Node2Vec - 2018 and 2019 by weeks data - Evaluate 2018 model with 2019 data - MST graph - Only exercise data'
+title_transition = 'Graph embeddings - Node2Vec - 2018 and 2019 by weeks data - Evaluate 2018 model with 2019 data - MST graph  - transition data action - with exercise data'
 algorithmList = []
 # algorithmList = []
-PredictionResult.algorithmComparisonGraph('recall',predictionReport_transition,algorithmList, title_transition)
+PredictionResult.algorithmComparisonGraph('roc_auc',predictionReport_transition,algorithmList, title_transition)
 
 #----------------- Train 2018 - Predict 2019 uncleaned data -----------------------------------------------
 #-----------------------------------------------------------------------------------------------#
@@ -831,9 +911,9 @@ for w in range(0,12):
         excellent = ex3_excellent.index
         weak = ex3_weak.index        
     
-    trainingData = activityDataMatrixWeeks_20182019[w].loc[activityDataMatrixWeeks_20182019[w].index.isin(excellent.union(weak))]
-    # trainingData = trainingData.merge(cummulativeExerciseWeeks_20182019[w]['correct'],left_on=trainingData.index,
-    #                                         right_on=cummulativeExerciseWeeks_20182019[w]['correct'].index).set_index('key_0')
+    trainingData = activityDataMatrixWeeks_20182019_normalised[w].loc[activityDataMatrixWeeks_20182019_normalised[w].index.isin(excellent.union(weak))]
+    trainingData = trainingData.merge(cummulativeExerciseWeeks_20182019[w]['correct'],left_on=trainingData.index,
+                                            right_on=cummulativeExerciseWeeks_20182019[w]['correct'].index).set_index('key_0')
     columns = trainingData.columns
     trainingData['result_exam_1'] = 2
     trainingData.loc[trainingData.index.isin(excellent),['result_exam_1']] = 1
@@ -856,9 +936,9 @@ for w in range(0,12):
         excellent = ex3_excellent_2019.index
         weak = ex3_weak_2019.index        
     
-    testData = activityDataMatrixWeeks_20182019[w].loc[activityDataMatrixWeeks_20182019[w].index.isin(excellent.union(weak))]
-    # testData = testData.merge(cummulativeExerciseWeeks_20182019[w]['correct'],left_on=testData.index,
-    #                                         right_on=cummulativeExerciseWeeks_20182019[w]['correct'].index).set_index('key_0')
+    testData = activityDataMatrixWeeks_20182019_normalised[w].loc[activityDataMatrixWeeks_20182019_normalised[w].index.isin(excellent.union(weak))]
+    testData = testData.merge(cummulativeExerciseWeeks_20182019[w]['correct'],left_on=testData.index,
+                                            right_on=cummulativeExerciseWeeks_20182019[w]['correct'].index).set_index('key_0')
     columns = testData.columns
     testData['result_exam_1'] = 2
     testData.loc[testData.index.isin(excellent),['result_exam_1']] = 1
@@ -895,7 +975,7 @@ predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week
                                                      'f1_score','precision','recall',
                                                      'roc_auc']) 
 
-title_transition = 'Graph embeddings - 2018 and 2019 by weeks data - Evaluate 2018 model with 2019 data - Activity data - No Exercise data'
+title_transition = 'Graph embeddings - 2018 and 2019 by weeks data - Evaluate 2018 model with 2019 data - Activity data normalised - with Exercise data'
 algorithmList = []
 # algorithmList = []
 PredictionResult.algorithmComparisonGraph('roc_auc',predictionReport_transition,algorithmList, title_transition)

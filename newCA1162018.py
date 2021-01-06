@@ -262,7 +262,7 @@ for w in range(0,12):
 
 
 for w in range(0,12):
-    activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_w'+str(w)+'.csv',index=True)
+    activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeekAction_w'+str(w)+'.csv',index=True)
     
 for w in range(0,12):
     temp = activityDataMatrixWeeks_pageTypeWeek[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageTypeWeek[w].index, right_on=cummulativeExerciseWeeks[w].index)
@@ -292,6 +292,16 @@ examCorrelation = pd.concat([a1,a2,a3], axis=1)
 pageTypeWeekList = pd.concat([weeksEventLog_filtered_pageType[i] for i in range(0,12)])['concept:instance'].unique()
 examCorrelation = examCorrelation.loc[examCorrelation.index.isin(pageTypeWeekList)]
 
+
+for w in range(0,12):
+    if w in [0,1,2,3]:
+        studentResult = assessment1A
+    elif w in [4,5,6,7]:
+        studentResult = assessment2A
+    else:
+        studentResult = assessment3A
+
+    activityDataMatrixWeeks_pageTypeWeek[w] = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.isin(studentResult.index)]
 #correlation analysis between exam, practice and activity
 w = 7
 for col1 in pageTypeWeekList:
@@ -401,7 +411,7 @@ transitionDataMatrixWeeks_directFollow_normalised[11].plot(x = 0 , y= 1, kind="s
 corrList = []
 corrDistanceList = []
 for w in range(0,12):
-    corrTemp = transitionDataMatrixWeeks_transposed[w].corr()
+    corrTemp = transitionDataMatrixWeeks[w].T.corr()
     corrList.append(corrTemp)
     corrDistance = (2*(1 - corrTemp)).apply(np.sqrt)
     corrDistanceList.append(corrDistance)
@@ -418,9 +428,9 @@ for w in range(0,12):
 graph_all_weeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
-    matrix = corrList_dataNormalised[w]
+    matrix = corrList[w]
     risk_estimators = ml.portfolio_optimization.RiskEstimators()
-    tn_relation = transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[0] / transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[1]
+    tn_relation = transitionDataMatrixWeeks[w].T.shape[0] / transitionDataMatrixWeeks[w].T.shape[1]
     # The bandwidth of the KDE kernel
     kde_bwidth = 0.01
     # Finding the Вe-noised Сovariance matrix
@@ -441,7 +451,7 @@ for w in range(0,12):
     print('Week ' + str(w) + '...')
     matrix = corrList[w]
     risk_estimators = ml.portfolio_optimization.RiskEstimators()
-    tn_relation = transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[0] / transitionDataMatrixWeeks_directFollow_normalised_transposed[w].shape[1]
+    tn_relation = activityDataMatrixWeeks_pageTypeWeek[w].T.shape[0] / activityDataMatrixWeeks_pageTypeWeek[w].T.shape[1]
     # The bandwidth of the KDE kernel
     kde_bwidth = 0.01
     # Finding the Вe-noised Сovariance matrix
@@ -481,7 +491,7 @@ for w in range(0,12):
 communityListWeeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')      
-    num_comms = len(graph_all_weeks_msf[w])
+    num_comms = len(graph_all_weeks[w].graph._node)
     communityListWeeks.append(graphLearning.community_dection_graph(graph_all_weeks[w], most_valuable_edge=graphLearning.most_central_edge, num_comms=num_comms))
 
 communityListWeeks_not_cleaned = []
@@ -489,6 +499,10 @@ for w in range(0,12):
     print('Week ' + str(w) + '...')      
     num_comms = len(graph_all_weeks_not_cleaned[w].graph._node)
     communityListWeeks_not_cleaned.append(graphLearning.community_dection_graph(graph_all_weeks_not_cleaned[w], most_valuable_edge=graphLearning.most_central_edge, num_comms=num_comms))
+
+a = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[11], assessment3A, 'perCorrect3A')
+import scikit_posthocs as sp
+a1 = sp.posthoc_conover(a[6][6])
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
@@ -568,7 +582,7 @@ ex3_weak = graphLearning.mapNewLabel(ex3_weak, reLabelIndex)
 
 excellentList = ex3_excellent.index
 weakList = ex3_weak.index
-graphLearning.visualiseMSTGraph(graph_all_weeks_msf[11], excellentList, weakList , reLabelIndex)  
+graphLearning.visualiseMSTGraph(graph_all_weeks[11], excellentList, weakList , reLabelIndex)  
 
 
 

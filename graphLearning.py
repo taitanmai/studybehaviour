@@ -11,7 +11,8 @@ from mlfinlab.networks.dash_graph import DashGraph
 from networkx import edge_betweenness_centrality as betweenness
 from plotly.offline import plot
 import plotly.graph_objects as go
-
+from scipy.stats import f_oneway
+from scipy import stats
 
 def generateTransition(activityCodeList, selfLoop = 1):
     result = []
@@ -371,5 +372,24 @@ def createGraphFromCorrDistance(matrix):
     
     return G
     
-
-
+def extractAssessmentResultOfCommunities(community, assessment, column):
+    result = []
+    for cSize in community:
+        extractedResult = []
+        groups = []
+        normTest = []
+        for c in cSize:
+            temp = assessment.loc[assessment.index.isin(c)]
+            extractedResult.append((temp[column].mean(),temp[column].std()))
+            if len(cSize) == 8:
+                k2, p = stats.normaltest(temp[column])
+                normTest.append((k2, p))
+            groups.append(temp[column])
+        if len(groups) == 8:
+            f,p = f_oneway(groups[0], groups[1],  groups[2],  groups[3],  groups[4] , groups[5],  groups[6],  groups[7])#,  groups[8],  groups[9])
+            L, pL = stats.levene(groups[0], groups[1],  groups[2],  groups[3],  groups[4], groups[5],  groups[6],  groups[7])#,  groups[8],  groups[9])
+            fk, pk = stats.kruskal(groups[0], groups[1],  groups[2],  groups[3],  groups[4] , groups[5],  groups[6],  groups[7])
+            result.append([len(cSize), extractedResult, (f,p), (L,pL), normTest, (fk,pk), groups])
+        else:
+            result.append([len(cSize), extractedResult, groups])
+    return result
