@@ -393,3 +393,36 @@ def extractAssessmentResultOfCommunities(community, assessment, column):
         else:
             result.append([len(cSize), extractedResult, groups])
     return result
+
+def getIntersectionTwoGroup(group1, group2):
+    return list(set(group1).intersection(set(group2))) 
+
+def findTogetherMembers(communitiesList1, communitiesList2, meanScoreGroup1, meanScoreGroup2 ): #communitiesList1 as pandas series
+    result = []
+    for key1, c1 in zip(range(0,len(communitiesList1)),communitiesList1):
+        tmp1 = []
+        for key2, c2 in zip(range(0,len(communitiesList1)),communitiesList2):
+            tmp2 = getIntersectionTwoGroup(c1.index, c2.index)
+            commonMemberDetail = []
+            for t in tmp2:
+                commonMemberDetail.append((t,c1[t],c2[t], meanScoreGroup1[key1][0], meanScoreGroup2[key2][0]))
+            commonMemberDetail = pd.DataFrame(commonMemberDetail, columns=['student','assessment2A','assessment3A','groupPoint2A','groupPoint3A']).set_index('student')
+            tmp1.append(commonMemberDetail)            
+        result.append(tmp1)
+    return pd.DataFrame(result)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+

@@ -101,7 +101,7 @@ materialAccessedByWeek.to_csv(basePath + 'materialAccessedByWeek_ca116_2019.csv'
 materialAccessedByWeek = pd.read_csv(basePath + 'materialAccessedByWeek_ca116_2019.csv', index_col=0)
 
 materialAccessedByWeek['sumOfpageActivity'] = materialAccessedByWeek.sum(axis = 1, skipna = True)
-accessedPageSummary = materialAccessedByWeek.loc[:,['pageType','sumOfpageActivity']].groupby([pd.Grouper('pageType')]).sum()
+accessedPageSummary = materialAccessedByWeek.loc[:,['pageType','sumOfpageActivity','ofWeek']].groupby([pd.Grouper('pageType'),pd.Grouper('ofWeek')]).sum()
 accessedPageSummary['perc']= accessedPageSummary['sumOfpageActivity']/accessedPageSummary['sumOfpageActivity'].sum()
 
 weeksEventLog_filtered_pageType = []
@@ -364,11 +364,11 @@ for w in range(0,12):
 
 transitionDataMatrixWeeks_directFollow_standardised = []    
 for w in range(0,12):
-    transitionDataMatrixWeeks_directFollow_standardised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w]))
+    transitionDataMatrixWeeks_directFollow_standardised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w].T))
 
 transitionDataMatrixWeeks_directFollow_normalised = []    
 for w in range(0,12):
-    transitionDataMatrixWeeks_directFollow_normalised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w], 'normalised'))
+    transitionDataMatrixWeeks_directFollow_normalised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w].T, 'normalised'))
 
 
 #transpose transition data matrix
@@ -388,7 +388,7 @@ transitionDataMatrixWeeks_directFollow_normalised[11].plot(x = 0 , y= 1, kind="s
 corrList = []
 corrDistanceList = []
 for w in range(0,12):
-    corrTemp = transitionDataMatrixWeeks[w].corr()
+    corrTemp = transitionDataMatrixWeeks_directFollow_standardised[w].corr()
     corrList.append(corrTemp)
     corrDistance = (0.5*(1 - corrTemp)).apply(np.sqrt)
     corrDistanceList.append(corrDistance)
@@ -405,7 +405,7 @@ for w in range(0,12):
 graph_all_weeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
-    matrix = corrList_dataNormalised[w]
+    matrix = corrList[w]
     risk_estimators = ml.portfolio_optimization.RiskEstimators()
     tn_relation = transitionDataMatrixWeeks_directFollow_standardised[w].shape[0] / transitionDataMatrixWeeks_directFollow_standardised[w].shape[1]
     # The bandwidth of the KDE kernel
@@ -481,6 +481,25 @@ for w in range(0,12):
     print('Week ' + str(w) + '...')      
     num_comms = len(graph_all_weeks_msf[w]._node)
     communityListWeeks.append(graphLearning.community_dection_graph(graph_all_weeks_msf[w], most_valuable_edge=graphLearning.most_central_edge, num_comms=num_comms, mst=False))
+
+
+import scikit_posthocs as sp
+aw11 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[11], assessment3A, 'perCorrect3A')
+aw11t = sp.posthoc_conover(aw11[6][6])
+
+aw9 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[9], assessment3A, 'perCorrect3A')
+aw9t = sp.posthoc_conover(aw9[6][6])
+
+
+aw7 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[7], assessment2A, 'perCorrect2A')
+aw71 = sp.posthoc_conover(aw7[6][6])
+
+a = graphLearning.findTogetherMembers(aw7[6][6],aw11[6][6], aw7[6][1],aw11[6][1])
+for i in range(0,8):
+    for j in range(0,8):
+        if len(a[i][j]) > 1:
+            print(a[i][j])
+
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
