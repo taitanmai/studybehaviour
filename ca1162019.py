@@ -107,7 +107,8 @@ accessedPageSummary['perc']= accessedPageSummary['sumOfpageActivity']/accessedPa
 weeksEventLog_filtered_pageType = []
 for w in range(0,12):
     tmp = weeksEventLog_filtered[w].merge(materialAccessedByWeek.loc[:,['pageType','ofWeek']], left_on=weeksEventLog_filtered[w].pageName, 
-                                    right_on=materialAccessedByWeek.loc[:,['pageType']].index)
+                                    right_on=materialAccessedByWeek.loc[:,['pageType']].index)    
+    tmp.loc[tmp['pageName'] == 'Practice',['ofWeek']] = w + 1
     tmp['pageTypeWeek'] = tmp['pageType'] + '_' + tmp['ofWeek'].astype(str)
     tmp['concept:name'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
     tmp['concept:instance'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
@@ -255,10 +256,10 @@ for w in range(0,12):
     print('Week ' + str(w) + '...')
     workingWeekLog.append(weeksEventLog_filtered_pageType[w])
     LogPageactivityCountByUser =  pd.concat(workingWeekLog) #weeksEventLog_filtered[w]
-    LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'concept:instance')
+    LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'pageTypeWeek')
     LogPageactivityCountByUser = LogPageactivityCountByUser.fillna(0)
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
-    # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
+    LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
     
 for w in range(0,12):
@@ -343,12 +344,12 @@ for w in range(0,12):
     transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, (transitionDataMatrixWeeks[w] != 0).any(axis=0)]
     
 for w in range(0,12):
-    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1162019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w'+str(w)+'.csv',index=True)
+    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1162019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv',index=True)
 
 #read csv iff neeeded
 transitionDataMatrixWeeks = []
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A.index
     elif w in [4,5,6,7]:
@@ -500,6 +501,32 @@ for i in range(0,8):
         if len(a[i][j]) > 1:
             print(a[i][j])
 
+goodCommunity = aw11[3][5][3]
+badCommunity = aw11[3][5][1]
+w = 11
+extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(badCommunity.index)]
+extractGoodBadCommunity['group'] = 0
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(goodCommunity.index),['group']] = 3
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(badCommunity.index),['group']] = 1
+
+columnListStatsSig = []
+for c in extractGoodBadCommunity.columns:
+    t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]])[1][0]
+    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]])[1][0]
+    if t1 <= 0.1 and t2 <= 0.1:
+        columnListStatsSig.append(c)
+        
+extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, ['Lecture_4']].hist(bins=80)
+
+for c in extractGoodBadCommunity.columns:
+    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]]
+    arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]]
+    test = stats.mannwhitneyu(arr1,arr2)[1]
+    if test <= 0.05:
+        meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]].mean()[0]
+        meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]].mean()[0]
+        print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community' + str(meanBad))
+
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
@@ -596,12 +623,14 @@ for w in range(0,12):
     node_embeddings = [list(model.wv.get_vector(n)) for n in nodeList] # numpy.ndarray of size number of nodes times embeddings dimensionality        
     nodeList = list(map(int,model.wv.index2word)) #convert string node to int node
     node_embeddings = pd.DataFrame(node_embeddings, index = nodeList)
-    node_embeddings = node_embeddings.merge(cummulativeExerciseWeeks[w]['correct'],left_on=node_embeddings.index,
-                                            right_on=cummulativeExerciseWeeks[w]['correct'].index).set_index('key_0')
+
     # scaler = StandardScaler()
     # node_embeddings = pd.DataFrame(scaler.fit_transform(node_embeddings), index=node_embeddings.index)
     node_embeddings_weeks.append(node_embeddings)
 
+for w in range(0,12):
+    node_embeddings_weeks[w] = node_embeddings_weeks[w].merge(cummulativeExerciseWeeks[w]['correct'],left_on=node_embeddings_weeks[w].index,
+                                        right_on=cummulativeExerciseWeeks[w]['correct'].index).set_index('key_0')
 
 node_embeddings_2d_df_weeks = []
 for w in range(0,12):

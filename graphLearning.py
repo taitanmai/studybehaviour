@@ -377,19 +377,22 @@ def extractAssessmentResultOfCommunities(community, assessment, column):
     for cSize in community:
         extractedResult = []
         groups = []
-        normTest = []
+        # normTest = []
         for c in cSize:
             temp = assessment.loc[assessment.index.isin(c)]
             extractedResult.append((temp[column].mean(),temp[column].std()))
-            if len(cSize) == 8:
-                k2, p = stats.normaltest(temp[column])
-                normTest.append((k2, p))
+            # if len(cSize) == 8:
+                # k2, p = stats.normaltest(temp[column])
+                # normTest.append((k2, p))
             groups.append(temp[column])
-        if len(groups) == 8:
-            f,p = f_oneway(groups[0], groups[1],  groups[2],  groups[3],  groups[4] , groups[5],  groups[6],  groups[7])#,  groups[8],  groups[9])
-            L, pL = stats.levene(groups[0], groups[1],  groups[2],  groups[3],  groups[4], groups[5],  groups[6],  groups[7])#,  groups[8],  groups[9])
-            fk, pk = stats.kruskal(groups[0], groups[1],  groups[2],  groups[3],  groups[4] , groups[5],  groups[6],  groups[7])
-            result.append([len(cSize), extractedResult, (f,p), (L,pL), normTest, (fk,pk), groups])
+        if len(groups) == 5:
+            f,p = f_oneway(groups[0], groups[1],  groups[2],  groups[3],  groups[4] )#, groups[5],  groups[6],  groups[7] )#,  groups[8],  groups[9])
+                           # ,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
+            L, pL = stats.levene(groups[0], groups[1],  groups[2],  groups[3],  groups[4] )#, groups[5],  groups[6],  groups[7])#,  groups[8],  groups[9])
+                           #,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
+            fk, pk = stats.kruskal(groups[0], groups[1],  groups[2],  groups[3],  groups[4] )#, groups[5],  groups[6],  groups[7])#,  groups[8],  groups[9])
+                           #,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
+            result.append([len(cSize), extractedResult, (f,p), (L,pL), (fk,pk), groups])
         else:
             result.append([len(cSize), extractedResult, groups])
     return result

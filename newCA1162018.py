@@ -83,7 +83,7 @@ eventLog_ca116_filtered['case:concept:name'] = eventLog_ca116_filtered['date'].a
 
 
 weeksEventLog_filtered = [g for n, g in eventLog_ca116_filtered.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
-a = weeksEventLog_filtered[1]
+a = weeksEventLog_filtered[1].loc[weeksEventLog_filtered[1]['pageName'] == 'Practice']
 
 #------------- Extract number of activities and assign pageType dictionary for later use
 #--------- descriptive analysis
@@ -106,7 +106,8 @@ accessedPageSummary['perc']= accessedPageSummary['sumOfpageActivity']/accessedPa
 weeksEventLog_filtered_pageType = []
 for w in range(1,13):
     tmp = weeksEventLog_filtered[w].merge(materialAccessedByWeek.loc[:,['pageType','ofWeek']], left_on=weeksEventLog_filtered[w].pageName, 
-                                    right_on=materialAccessedByWeek.loc[:,['pageType']].index)
+                                    right_on=materialAccessedByWeek.loc[:,['pageType']].index)    
+    tmp.loc[tmp['pageName'] == 'Practice',['ofWeek']] = w
     tmp['pageTypeWeek'] = tmp['pageType'] + '_' + tmp['ofWeek'].astype(str)
     tmp['concept:name'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
     tmp['concept:instance'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
@@ -204,9 +205,11 @@ for week in range(0,12):
     # cummulativeResult = practiceResultSum.groupby([pd.Grouper(key='user')]).sum()
     cummulativeResult['cumm_practice'] = cummulativeResult['correct']/practiceResult.groupby([pd.Grouper(key='user')]).count()['date']
     cummulativeResult['successPassedRate'] = cummulativeResult['passed']/(cummulativeResult['passed'] + cummulativeResult['failed'])
-    cummulativeResult = graphLearning.mapNewLabel(cummulativeResult, reLabelIndex)
+    # cummulativeResult = graphLearning.mapNewLabel(cummulativeResult, reLabelIndex)
     cummulativeExerciseWeeks.append(cummulativeResult)
-    
+
+for w in range(0,12):
+    cummulativeExerciseWeeks[w] = graphLearning.mapNewLabel(cummulativeExerciseWeeks[w],reLabelIndex)
     
 assessment_label = assessment.copy()
 assessment_label = graphLearning.mapNewLabel(assessment, reLabelIndex)
@@ -257,7 +260,7 @@ for w in range(0,12):
     LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'pageTypeWeek')
     LogPageactivityCountByUser = LogPageactivityCountByUser.fillna(0)
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
-    # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
+    LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
 
 
@@ -265,7 +268,7 @@ for w in range(0,12):
     activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeekAction_w'+str(w)+'.csv',index=True)
     
 for w in range(0,12):
-    temp = activityDataMatrixWeeks_pageTypeWeek[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageTypeWeek[w].index, right_on=cummulativeExerciseWeeks[w].index)
+    temp = activityDataMatrixWeeks_pageTypeWeek[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int), right_on=cummulativeExerciseWeeks[w].index)
     temp = temp.set_index(['key_0'])
     if w in [0,1,2,3]:
         studentResult = assessment_label1A
@@ -288,8 +291,9 @@ a2 = a['perCorrect2A'].sort_values()
 a =  activityDataMatrixWeeks_pageTypeWeek[3].corr()
 a3 = a['perCorrect1A'].sort_values()
 
+
 examCorrelation = pd.concat([a1,a2,a3], axis=1)
-pageTypeWeekList = pd.concat([weeksEventLog_filtered_pageType[i] for i in range(0,12)])['concept:instance'].unique()
+pageTypeWeekList = pd.concat([weeksEventLog_filtered_pageType[i] for i in range(0,12)])['pageTypeWeek'].unique()
 examCorrelation = examCorrelation.loc[examCorrelation.index.isin(pageTypeWeekList)]
 
 
@@ -351,7 +355,7 @@ for w in range(0,12):
     transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, (transitionDataMatrixWeeks[w] != 0).any(axis=0)]
     
 for w in range(0,12):
-    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w'+str(w)+'.csv',index=True)
+    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv',index=True)
 
 for w in range(0,12):    
     transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(transitionDataMatrixWeeks[w], reLabelIndex)
@@ -360,7 +364,7 @@ for w in range(0,12):
 #read csv iff neeeded
 transitionDataMatrixWeeks = []
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A.index
     elif w in [4,5,6,7]:
@@ -368,7 +372,7 @@ for w in range(0,12):
     else:
         studentList = assessment3A.index
     temp = temp.loc[temp.index.isin(studentList)]
-    temp = graphLearning.mapNewLabel(temp, reLabelIndex)
+    # temp = graphLearning.mapNewLabel(temp, reLabelIndex)
     # temp = temp.drop(['Practice_0-Practice_0'],axis=1)
     # if w == 1:
     #     temp = temp.drop([8])
@@ -501,39 +505,54 @@ for w in range(0,12):
     communityListWeeks_not_cleaned.append(graphLearning.community_dection_graph(graph_all_weeks_not_cleaned[w], most_valuable_edge=graphLearning.most_central_edge, num_comms=num_comms))
 
 import scikit_posthocs as sp
+pd.set_option("display.max_rows", None, "display.max_columns", None)
 aw11 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[11], assessment3A, 'perCorrect3A')
-aw11t = sp.posthoc_conover(aw11[6][6])
+aw11t = sp.posthoc_conover(aw11[3][5])
 
 aw9 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[9], assessment3A, 'perCorrect3A')
-aw9t = sp.posthoc_conover(aw9[6][6])
+aw9t = sp.posthoc_conover(aw9[18][5])
 
+aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[10], assessment3A, 'perCorrect3A')
+aw10t = sp.posthoc_conover(aw10[18][5])
 
 aw7 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[7], assessment2A, 'perCorrect2A')
-aw71 = sp.posthoc_conover(aw7[6][6])
+aw7t = sp.posthoc_conover(aw7[18][5])
 
-a = graphLearning.findTogetherMembers(aw9[6][6],aw11[6][6], aw9[6][1],aw11[6][1])
+a = graphLearning.findTogetherMembers(aw10[18][5],aw11[18][5], aw10[18][1],aw11[18][1])
 len(set(assessment2A.index).intersection(set(assessment3A.index)))
-a[0][0]
-a[3][0]
-a[6][0]
-a[1][1]
-a[4][1]
-a[2][2]
-a[4][2]
-a[1][3]
-a[4][3]
-a[4][4]
-a[7][4]
-a[3][5]
-a[5][5]
-a[6][5]
-a[1][6]
-a[5][6]
-a[0][7]
-a[7][7]
 
-[[2,2],[2,1],[3,2],[3,1]]
+a = graphLearning.findTogetherMembers(aw7[18][5],aw11[18][5], aw7[18][1],aw11[18][1])
+for i in range(0,8):
+    for j in range(0,8):
+        if len(a[i][j]) > 1:
+            print(a[i][j])
 
+
+goodCommunity = aw11[3][5][3]
+badCommunity = aw11[3][5][2]
+w = 11
+extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(badCommunity.index)]
+extractGoodBadCommunity['group'] = 0
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(goodCommunity.index),['group']] = 3
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(badCommunity.index),['group']] = 2
+
+columnListStatsSig = []
+for c in extractGoodBadCommunity.columns:
+    t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]])[1][0]
+    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]])[1][0]
+    if t1 <= 0.1 and t2 <= 0.1:
+        columnListStatsSig.append(c)
+        
+extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, ['Lecture_4']].hist(bins=80)
+
+for c in extractGoodBadCommunity.columns:
+    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]]
+    arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]]
+    test = stats.mannwhitneyu(arr1,arr2)[1]
+    if test <= 0.05:
+        meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]].mean()[0]
+        meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]].mean()[0]
+        print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community' + str(meanBad))
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
@@ -592,6 +611,7 @@ for w in range(0,12):
     countGraph = countGraph + 1               
 plt.show()      
     
+
 exellentPractice = []
 weakPractice = []
 for w in range(0,12):
@@ -611,9 +631,9 @@ ex2_weak = graphLearning.mapNewLabel(ex2_weak, reLabelIndex)
 ex3_excellent = graphLearning.mapNewLabel(ex3_excellent, reLabelIndex)
 ex3_weak = graphLearning.mapNewLabel(ex3_weak, reLabelIndex)
 
-excellentList = ex3_excellent.index
-weakList = ex3_weak.index
-graphLearning.visualiseMSTGraph(graph_all_weeks[11], excellentList, weakList , reLabelIndex)  
+excellentList = ex1_excellent.index
+weakList = ex1_weak.index
+graphLearning.visualiseMSTGraph(graph_all_weeks[3], excellentList, weakList , reLabelIndex)  
 
 
 
@@ -624,18 +644,21 @@ graphLearning.visualiseMSTGraph(graph_all_weeks[11], excellentList, weakList , r
 node_embeddings_weeks = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
-    node2vec = Node2Vec(graph_all_weeks_msf[w], dimensions=64, walk_length=8, num_walks=15, p=0.1, q=1)
+    node2vec = Node2Vec(graph_all_weeks[w].graph, dimensions=64, walk_length=8, num_walks=15, p=0.1, q=1)
     model = node2vec.fit(window=8, min_count=1)    
     nodeList = model.wv.index2word
     node_embeddings = [list(model.wv.get_vector(n)) for n in nodeList] # numpy.ndarray of size number of nodes times embeddings dimensionality        
-    nodeList = list(map(int,model.wv.index2word)) #convert string node to int node
+    nodeList = list(map(str,model.wv.index2word)) #convert string node to int node
     node_embeddings = pd.DataFrame(node_embeddings, index = nodeList)
-    node_embeddings = node_embeddings.merge(cummulativeExerciseWeeks[w]['correct'],left_on=node_embeddings.index,
-                                            right_on=cummulativeExerciseWeeks[w]['correct'].index).set_index('key_0')
+    # node_embeddings = node_embeddings.merge(cummulativeExerciseWeeks[w]['correct'],left_on=node_embeddings.index,
+    #                                         right_on=cummulativeExerciseWeeks[w]['correct'].index).set_index('key_0')
     # scaler = StandardScaler()
     # node_embeddings = pd.DataFrame(scaler.fit_transform(node_embeddings), index=node_embeddings.index)
     node_embeddings_weeks.append(node_embeddings)
 
+for w in range(0,12):
+    node_embeddings_weeks[w] = node_embeddings_weeks[w].merge(cummulativeExerciseWeeks[w]['correct'],left_on=node_embeddings_weeks[w].index,
+                                        right_on=cummulativeExerciseWeeks[w]['correct'].index).set_index('key_0')
 
 node_embeddings_2d_df_weeks = []
 for w in range(0,12):
@@ -660,8 +683,8 @@ for w in range(0,12):
     node_embeddings_2d_df = pd.DataFrame(node_embeddings_2d, index = node_embeddings_weeks[w].index)
     node_embeddings_2d_df['result_exam_1'] = '2'
     
-    node_embeddings_2d_df.loc[node_embeddings_2d_df.index.isin(excellent),['result_exam_1']] = 1
-    node_embeddings_2d_df.loc[node_embeddings_2d_df.index.isin(weak),['result_exam_1']] = 0
+    node_embeddings_2d_df.loc[node_embeddings_2d_df.index.astype(int).isin(excellent),['result_exam_1']] = 1
+    node_embeddings_2d_df.loc[node_embeddings_2d_df.index.astype(int).isin(weak),['result_exam_1']] = 0
     node_embeddings_2d_df_weeks.append(node_embeddings_2d_df)
 
 
