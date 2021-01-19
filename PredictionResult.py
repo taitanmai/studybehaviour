@@ -354,7 +354,7 @@ def trainModel(X, y):
     #         n_estimators=1000
     #     )
     
-    rf=RandomForestClassifier(n_estimators=1000)
+    rf=RandomForestClassifier(n_estimators=200)
     
     gb = GradientBoostingClassifier(
         n_estimators=1000,
@@ -371,7 +371,7 @@ def trainModel(X, y):
     
     knn = KNeighborsClassifier(n_neighbors=3)
     
-    classifiers = [('XGBoost',xgb),('Logistic Regression',lr), ('Decision Tree',dt),('SVM',svmL),('KNN',knn)]
+    classifiers = [('XGBoost',xgb),('Logistic Regression',lr), ('Decision Tree',dt),('SVM',svmL),('KNN',knn),('Random Forest',rf)]
     result = {}
     for name, classifier in classifiers:
         print(name + '...')

@@ -227,7 +227,7 @@ def labelCommunity(studentList, communityList, noOfCommunities, excellent, weak,
     temp = identifyGroupOfAllStudentsOverAllCommunitiesInWeek(df.columns,communityList1, excellent, weak)
     temp1 = temp.copy()
     temp1 = temp1.to_numpy()
-    temp1 = np.where(temp1>=0.7, 3, np.where(temp1< 0.4, 1, 2))
+    temp1 = np.where(temp1>= 0.7, 1, np.where(temp1<= 0.3, 0, 2))
     temp1 = pd.DataFrame(temp1, index = temp.index, columns = temp.columns)
     return temp1
 
@@ -386,11 +386,11 @@ def extractAssessmentResultOfCommunities(community, assessment, column):
                 # normTest.append((k2, p))
             groups.append(temp[column])
         if len(groups) == 5:
-            f,p = f_oneway(groups[0], groups[1],  groups[2],  groups[3],  groups[4] )#, groups[5],  groups[6],  groups[7] )#,  groups[8],  groups[9])
+            f,p = f_oneway(groups[0], groups[1],  groups[2],  groups[3],  groups[4] )#, groups[5],  groups[6] ,  groups[7] )#,  groups[8],  groups[9])
                            # ,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
-            L, pL = stats.levene(groups[0], groups[1],  groups[2],  groups[3],  groups[4] )#, groups[5],  groups[6],  groups[7])#,  groups[8],  groups[9])
+            L, pL = stats.levene(groups[0], groups[1],  groups[2],  groups[3],  groups[4] ) #, groups[5],  groups[6] ,  groups[7])#,  groups[8],  groups[9])
                            #,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
-            fk, pk = stats.kruskal(groups[0], groups[1],  groups[2],  groups[3],  groups[4] )#, groups[5],  groups[6],  groups[7])#,  groups[8],  groups[9])
+            fk, pk = stats.kruskal(groups[0], groups[1],  groups[2],  groups[3],  groups[4] ) #, groups[5],  groups[6] ,  groups[7])#,  groups[8],  groups[9])
                            #,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
             result.append([len(cSize), extractedResult, (f,p), (L,pL), (fk,pk), groups])
         else:

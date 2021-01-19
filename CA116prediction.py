@@ -1,3 +1,4 @@
+
 import pandas as pd
 import numpy as np
 import scipy as sp
@@ -144,11 +145,11 @@ for w in range(0,12):
     # if w == 1:
     #     temp = temp.drop([8])
     transitionDataMatrixWeeks.append(temp) 
-    
+
 
 activityDataMatrixWeeks_pageTypeWeek = []    
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_newPractice_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A.index
     elif w in [4,5,6,7]:
@@ -163,6 +164,7 @@ for w in range(0,12):
 
 
 activityDataMatrixWeeks_pageTypeWeek[11].hist(bins=50,density=True)
+
     
 #import data for ca1162019:
 dataUpload_2019 = pd.read_csv(basePath + 'ca116_uploads_2019.csv')
@@ -267,7 +269,7 @@ for w in range(0,12):
     
 activityDataMatrixWeeks_pageTypeWeek_2019 = []    
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeekAction_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeek_newPractice_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A_2019.index
     elif w in [4,5,6,7]:
@@ -752,8 +754,12 @@ for w in range(0,12):
     else:
         excellent = ex3_excellent.index
         weak = ex3_weak.index        
-    
-    trainingData = node_embeddings_weeks[w].loc[node_embeddings_weeks[w].index.isin(excellent.union(weak))]
+    columnsList = []
+    for c1 in activityDataMatrixWeeks_pageTypeWeek[w].columns:
+        if c1 != 'result_exam_1':
+            if c1 in activityDataMatrixWeeks_pageTypeWeek_2019[w].columns:
+                columnsList.append(c1)
+    trainingData = activityDataMatrixWeeks_pageTypeWeek[w].loc[:,columnsList] #node_embeddings_weeks[w].loc[node_embeddings_weeks[w].index.isin(excellent.union(weak))]
     columns = trainingData.columns
     trainingData['result_exam_1'] = 2
     trainingData.loc[trainingData.index.isin(excellent),['result_exam_1']] = 1
@@ -761,6 +767,17 @@ for w in range(0,12):
     X_train_weeks.append(trainingData.loc[:,columns])
     y_train_weeks.append(trainingData['result_exam_1'])
 
+for w in range(0,12):
+    X_train_weeks[w] = X_train_weeks[w].merge(cummulativeExerciseWeeks[w].loc[:,['correct']], left_on=X_train_weeks[w].index , 
+                                              right_on=cummulativeExerciseWeeks[w].loc[:,['correct']].index).set_index('key_0')
+# y_train_weeks = []
+for w in range(4,12):
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/relabel_assessment_ca1162018_w' + str(w) + '.csv', index_col=0)
+    temp = X_train_weeks[w].merge(temp, left_on=X_train_weeks[w].index, right_on=temp.index).set_index('key_0')
+    temp['result_exam_1'] = y_train_weeks[w]
+    temp.loc[temp['2'].isin(['0','1']),['result_exam_1']] = temp['2']
+    y_train_weeks[w] = temp['result_exam_1']
+    
 # a = trainingData.corr()
     
 X_test_weeks = []
@@ -775,26 +792,39 @@ for w in range(0,12):
     else:
         excellent = ex3_excellent_2019.index
         weak = ex3_weak_2019.index        
-    
-    testData = node_embeddings_weeks[w].loc[node_embeddings_weeks[w].index.isin(excellent.union(weak))]
+    columnsList = []
+    for c1 in activityDataMatrixWeeks_pageTypeWeek[w].columns:
+        if c1 != 'result_exam_1':
+            if c1 in activityDataMatrixWeeks_pageTypeWeek_2019[w].columns:
+                columnsList.append(c1)
+    testData = activityDataMatrixWeeks_pageTypeWeek_2019[w].loc[:,columnsList] #node_embeddings_weeks[w].loc[node_embeddings_weeks[w].index.isin(excellent.union(weak))]
     columns = testData.columns
     testData['result_exam_1'] = 2
     testData.loc[testData.index.isin(excellent),['result_exam_1']] = 1
     testData.loc[testData.index.isin(weak),['result_exam_1']] = 0
     X_test_weeks.append(testData.loc[:,columns])
     y_test_weeks.append(testData['result_exam_1'])
+
+for w in range(0,12):
+    X_test_weeks[w] = X_test_weeks[w].merge(cummulativeExerciseWeeks_2019[w].loc[:,['correct']], left_on=X_test_weeks[w].index , 
+                                              right_on=cummulativeExerciseWeeks_2019[w].loc[:,['correct']].index).set_index('key_0')
     
 trainModels = []
 for w in range(0,12):
     print('Week ' + str(w) + '...')
-    trainModels.append(PredictionResult.trainModel(X_train_weeks[w], y_train_weeks[w]))
+    trainDataStandardised = dataProcessing.normaliseData(X_train_weeks[w])
+    y_train_weeks[w] = y_train_weeks[w].loc[y_train_weeks[w].index.isin(trainDataStandardised.index)]
+    trainModels.append(PredictionResult.trainModel(trainDataStandardised, y_train_weeks[w]))
     
 evalModels = []
 for w in range(0,12):
     prediction = {}
     for algorithm in trainModels[w]:
         if algorithm != 'data':
-            prediction[algorithm] = PredictionResult.evaluateTestData(trainModels[w][algorithm][1],X_test_weeks[w], y_test_weeks[w])    
+            testData = X_test_weeks[w].loc[:,:]
+            testDataStandardised = dataProcessing.normaliseData(testData)
+            y_test_weeks[w] = y_test_weeks[w].loc[y_test_weeks[w].index.isin(testDataStandardised.index)]
+            prediction[algorithm] = PredictionResult.evaluateTestData(trainModels[w][algorithm][1],testDataStandardised, y_test_weeks[w])    
     evalModels.append(prediction)
     
 reportArray_transition = []
@@ -813,7 +843,7 @@ predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week
                                                      'f1_score','precision','recall',
                                                      'roc_auc']) 
 
-title_transition = 'Graph embeddings - Node2Vec - 2018 and 2019 by weeks data - Evaluate 2018 model with 2019 data - MST graph  - transition data action - with exercise data'
+title_transition = '2018 and 2019 by weeks data - Evaluate 2018 model with 2019 data - activity data matrix - standardised'
 algorithmList = []
 # algorithmList = []
 PredictionResult.algorithmComparisonGraph('roc_auc',predictionReport_transition,algorithmList, title_transition)
@@ -839,7 +869,9 @@ for w in range(0,12):
     trainingData.loc[trainingData.index.isin(excellent),['result_exam_1']] = 1
     trainingData.loc[trainingData.index.isin(weak),['result_exam_1']] = 0
     X_train_weeks_uncleaned.append(trainingData.loc[:,columns])
-    y_train_weeks_uncleaned.append(trainingData['result_exam_1'])
+    # y_train_weeks_uncleaned.append(trainingData['result_exam_1'])
+
+
     
 X_test_weeks_uncleaned = []
 y_test_weeks_uncleaned = []

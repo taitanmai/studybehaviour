@@ -260,12 +260,12 @@ for w in range(0,12):
     LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'pageTypeWeek')
     LogPageactivityCountByUser = LogPageactivityCountByUser.fillna(0)
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
-    LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
+    # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
 
 
 for w in range(0,12):
-    activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeekAction_w'+str(w)+'.csv',index=True)
+    activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv',index=True)
     
 for w in range(0,12):
     temp = activityDataMatrixWeeks_pageTypeWeek[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int), right_on=cummulativeExerciseWeeks[w].index)
@@ -337,7 +337,6 @@ for week in range(0,12):
 
 
 #-------------------------------------------------------------------------------------
-
 workingWeekLog = []
 transitionDataMatrixWeeks = []
 full_transitionDataMatrixWeeks = []
@@ -349,6 +348,7 @@ for week in range(0,12):
     full_transitionDataMatrixWeeks.append(tempTransition)   
     tempTransition = tempTransition.groupby([pd.Grouper(key='user')]).sum()         
     transitionDataMatrixWeeks.append(tempTransition)
+
 
 #eliminate zero column    
 for w in range(0,12):
@@ -504,6 +504,7 @@ for w in range(0,12):
     num_comms = len(graph_all_weeks_not_cleaned[w].graph._node)
     communityListWeeks_not_cleaned.append(graphLearning.community_dection_graph(graph_all_weeks_not_cleaned[w], most_valuable_edge=graphLearning.most_central_edge, num_comms=num_comms))
 
+import graphLearning
 import scikit_posthocs as sp
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 aw11 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[11], assessment3A, 'perCorrect3A')
@@ -518,7 +519,9 @@ aw10t = sp.posthoc_conover(aw10[18][5])
 aw7 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[7], assessment2A, 'perCorrect2A')
 aw7t = sp.posthoc_conover(aw7[18][5])
 
-a = graphLearning.findTogetherMembers(aw10[18][5],aw11[18][5], aw10[18][1],aw11[18][1])
+a = graphLearning.findTogetherMembers(aw10[18][5],aw11[18][5], aw10[18][1],aw11
+                                      
+                                      [18][1])
 len(set(assessment2A.index).intersection(set(assessment3A.index)))
 
 a = graphLearning.findTogetherMembers(aw7[18][5],aw11[18][5], aw7[18][1],aw11[18][1])
@@ -528,31 +531,54 @@ for i in range(0,8):
             print(a[i][j])
 
 
-goodCommunity = aw11[3][5][3]
+goodCommunity = aw11[3][5][4]
 badCommunity = aw11[3][5][2]
 w = 11
-extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(badCommunity.index)]
+extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(badCommunity.index)]
 extractGoodBadCommunity['group'] = 0
-extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(goodCommunity.index),['group']] = 3
-extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(badCommunity.index),['group']] = 2
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(goodCommunity.index),['group']] = 4
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(badCommunity.index),['group']] = 2
 
 columnListStatsSig = []
 for c in extractGoodBadCommunity.columns:
-    t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]])[1][0]
-    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]])[1][0]
+    t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]])[1][0]
+    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]])[1][0]
     if t1 <= 0.1 and t2 <= 0.1:
         columnListStatsSig.append(c)
         
 extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, ['Lecture_4']].hist(bins=80)
 
 for c in extractGoodBadCommunity.columns:
-    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]]
-    arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]]
+    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]]
+    arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]]
     test = stats.mannwhitneyu(arr1,arr2)[1]
     if test <= 0.05:
-        meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]].mean()[0]
+        meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]].mean()[0]
         meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]].mean()[0]
-        print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community' + str(meanBad))
+        print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community: ' + str(meanBad))
+        
+import graphLearning       
+        
+classifyStudentGroupOverCommunitiesWeeks = []
+for w in range(0,12):
+    print('Week ' + str(w) + '...')
+    if w in [0,1,2,3]:
+        excellent = ex1_excellent.index
+        weak = ex1_weak.index
+    elif w in [4,5,6,7]:
+        excellent = ex2_excellent.index
+        weak = ex2_weak.index
+    else:
+        excellent = ex3_excellent.index
+        weak = ex3_weak.index
+    
+    studentList = transitionDataMatrixWeeks_directFollow_standardised[w].columns
+    noOfCommunities = 20
+    temp1 = graphLearning.labelCommunity(studentList, communityListWeeks[w], noOfCommunities, excellent, weak, transitionDataMatrixWeeks_directFollow_standardised[w])
+    classifyStudentGroupOverCommunitiesWeeks.append(temp1)
+
+for w in range(0,12):
+    classifyStudentGroupOverCommunitiesWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/relabel_assessment_ca1162018_w' + str(w) + '.csv', index=True)
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
@@ -648,7 +674,7 @@ for w in range(0,12):
     model = node2vec.fit(window=8, min_count=1)    
     nodeList = model.wv.index2word
     node_embeddings = [list(model.wv.get_vector(n)) for n in nodeList] # numpy.ndarray of size number of nodes times embeddings dimensionality        
-    nodeList = list(map(str,model.wv.index2word)) #convert string node to int node
+    nodeList = list(map(int,model.wv.index2word)) #convert string node to int node
     node_embeddings = pd.DataFrame(node_embeddings, index = nodeList)
     # node_embeddings = node_embeddings.merge(cummulativeExerciseWeeks[w]['correct'],left_on=node_embeddings.index,
     #                                         right_on=cummulativeExerciseWeeks[w]['correct'].index).set_index('key_0')
@@ -739,7 +765,7 @@ for week in range(0,12):
    
     cummulativeResult = []
     
-    dataForPrediction = node_embeddings_weeks
+    dataForPrediction =  node_embeddings_weeks #activityDataMatrixWeeks_pageTypeWeek
     predictionResult = PredictionResult.predict_proba_all_algorithms_data_ready(dataForPrediction[week], excellent, weak, cummulativeResult)
     prediction_transition.append(predictionResult)
 
@@ -762,9 +788,13 @@ predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week
                                                      'f1_score','precision','recall',
                                                      'roc_auc','cv mean','cv_mean_f1','cv_mean_recall']) 
 
-title_transition = 'Graph embeddings - Node2Vec - accumulated data - Sum - correlation distance'
+title_transition = 'Graph embeddings - node2vec - accumulated data - Sum - MST graph Data'
 algorithmList = []
 # algorithmList = []
 PredictionResult.algorithmComparisonGraph('cv mean',predictionReport_transition,algorithmList, title_transition)
 
 community.greedy_modularity_communities(graph_all_weeks[11].graph)
+
+#--------------- PREDCTION with activity data --------------------------------------------------#
+#---------------------------------------------------------------------------------#
+
