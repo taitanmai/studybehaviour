@@ -206,7 +206,7 @@ for week in range(0,12):
     # cummulativeResult = practiceResultSum.groupby([pd.Grouper(key='user')]).sum()
     cummulativeResult['cumm_practice'] = cummulativeResult['correct']/practiceResult.groupby([pd.Grouper(key='user')]).count()['date']
     cummulativeResult['successPassedRate'] = cummulativeResult['passed']/(cummulativeResult['passed'] + cummulativeResult['failed'])
-    cummulativeResult = graphLearning.mapNewLabel(cummulativeResult, reLabelIndex)
+    # cummulativeResult = graphLearning.mapNewLabel(cummulativeResult, reLabelIndex)
     cummulativeExerciseWeeks.append(cummulativeResult)
     
     
@@ -265,33 +265,41 @@ for w in range(0,12):
 for w in range(0,12):
     activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv',index=True)
     
+activityExamData = []   
 for w in range(0,12):
-    temp = activityDataMatrixWeeks_pageTypeWeek[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageTypeWeek[w].index, right_on=cummulativeExerciseWeeks[w].index)
+    temp = activityDataMatrixWeeks_pageTypeWeek[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str), right_on=cummulativeExerciseWeeks[w].index)
     temp = temp.set_index(['key_0'])
     if w in [0,1,2,3]:
-        studentResult = assessment_label1A
+        studentResult = assessment1A
     elif w in [4,5,6,7]:
-        studentResult = assessment_label2A
+        studentResult = assessment2A
     else:
-        studentResult = assessment_label3A
+        studentResult = assessment3A
     temp = temp.merge(studentResult, left_on=temp.index, right_on=studentResult.index)
     temp = temp.set_index(['key_0'])
     if -1 in temp.index:
         temp = temp.drop([-1])
-    activityDataMatrixWeeks_pageTypeWeek[w] = temp
+    activityExamData.append(temp)
 
-a =  activityDataMatrixWeeks_pageTypeWeek[11].corr()
+a =  activityExamData[11].corr()
 a1 = a['perCorrect3A'].sort_values()
 
-a =  activityDataMatrixWeeks_pageTypeWeek[7].corr()
+a =  activityExamData[7].corr()
 a2 = a['perCorrect2A'].sort_values()
 
-a =  activityDataMatrixWeeks_pageTypeWeek[3].corr()
+a =  activityExamData[3].corr()
 a3 = a['perCorrect1A'].sort_values()
 
-examCorrelation = pd.concat([a1,a2,a3], axis=1)
+
+examCorrelation = pd.concat([a3,a2,a1], axis=1)
 pageTypeWeekList = pd.concat([weeksEventLog_filtered_pageType[i] for i in range(0,12)])['pageTypeWeek'].unique()
 examCorrelation = examCorrelation.loc[examCorrelation.index.isin(pageTypeWeekList)]
+examCorrelation = examCorrelation.sort_index()
+examCorrelation.rename(columns={'perCorrect1A':'Lab Exam 1',
+                          'perCorrect2A':'Lab Exam 2',
+                          'perCorrect3A':'Lab Exam 3'}, 
+                  inplace=True)
+sns.heatmap(examCorrelation, cmap='RdYlGn')
 
 #correlation analysis between exam, practice and activity
 w = 7
@@ -357,7 +365,7 @@ for w in range(0,12):
     else:
         studentList = assessment3A.index
     temp = temp.loc[temp.index.isin(studentList)]
-    temp = graphLearning.mapNewLabel(temp, reLabelIndex)
+    # temp = graphLearning.mapNewLabel(temp, reLabelIndex)
     # temp = temp.drop(['Practice_0-Practice_0'],axis=1)
     # if w == 1:
     #     temp = temp.drop([8])
@@ -485,8 +493,8 @@ for w in range(0,12):
 
 
 import scikit_posthocs as sp
-aw11 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[11], assessment3A, 'perCorrect3A')
-aw11t = sp.posthoc_conover(aw11[6][6])
+aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[10], assessment3A, 'perCorrect3A')
+aw10t = sp.posthoc_conover(aw10[3][5])
 
 aw9 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[9], assessment3A, 'perCorrect3A')
 aw9t = sp.posthoc_conover(aw9[6][6])
@@ -501,31 +509,56 @@ for i in range(0,8):
         if len(a[i][j]) > 1:
             print(a[i][j])
 
-goodCommunity = aw11[5][5][4]
-badCommunity = aw11[5][5][1]
-w = 11
-extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(badCommunity.index)]
+goodCommunity = aw10[3][5][4]
+badCommunity = aw10[3][5][2]
+w = 10
+extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(badCommunity.index)]
 extractGoodBadCommunity['group'] = 0
-extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(goodCommunity.index),['group']] = 4
-extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(badCommunity.index),['group']] = 1
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(goodCommunity.index),['group']] = 4
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(badCommunity.index),['group']] = 2
 
 columnListStatsSig = []
 for c in extractGoodBadCommunity.columns:
-    t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]])[1][0]
+    t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]])[1][0]
     t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]])[1][0]
     if t1 <= 0.1 and t2 <= 0.1:
         columnListStatsSig.append(c)
         
 extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, ['Lecture_4']].hist(bins=80)
 
+compareMean = []
 for c in extractGoodBadCommunity.columns:
-    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]]
-    arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]]
+    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]]
+    arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]]
     test = stats.mannwhitneyu(arr1,arr2)[1]
     if test <= 0.05:
-        meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]].mean()[0]
-        meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]].mean()[0]
-        print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community' + str(meanBad))
+        if c!= 'group':
+            meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]].mean()[0]
+            meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]].mean()[0]
+            compareMean.append([c, meanGood, meanBad])
+        # print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community: ' + str(meanBad))
+compareMeanDf = pd.DataFrame(compareMean, columns=['Material','Best Group', 'Worst Group'])
+compareMeanDfnewCol = compareMeanDf['Material'].str.split('_', expand = True)
+compareMeanDf['week'] = compareMeanDfnewCol[1].astype(int)
+compareMeanDf['MaterialType'] = compareMeanDfnewCol[0]
+compareMeanDf = compareMeanDf.sort_values(['MaterialType','week'])
+
+#draw horizontal barchart for compare mean activity
+# create plot
+fig, ax = plt.subplots(figsize=(30,20), dpi=150)
+index = np.arange(len(compareMeanDf.index))
+bar_width = 0.4
+opacity = 1
+
+rects1 = plt.barh(index, compareMeanDf['Best Group'], bar_width, alpha=opacity, color='b', label='Best Group')
+rects2 = plt.barh(index + bar_width, compareMeanDf['Worst Group'], bar_width, alpha=opacity, color='g', label='Worst Group')
+
+plt.ylabel('Course Materials', fontsize=20)
+plt.xlabel('Average number of activities', fontsize=20)
+plt.title('')
+plt.yticks(index + bar_width, compareMeanDf.Material, fontsize=18)
+plt.xticks(fontsize=20)
+plt.legend(fontsize=25)
 
 
 fig = plt.figure(figsize=(40,30),dpi=240)
@@ -711,7 +744,7 @@ for week in range(0,12):
    
     cummulativeResult = []
     
-    dataForPrediction = node_embeddings_weeks
+    dataForPrediction = activityDataMatrixWeeks_pageTypeWeek #node_embeddings_weeks
     predictionResult = PredictionResult.predict_proba_all_algorithms_data_ready(dataForPrediction[week], excellent, weak, cummulativeResult)
     prediction_transition.append(predictionResult)
 
@@ -734,7 +767,7 @@ predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week
                                                      'f1_score','precision','recall',
                                                      'roc_auc','cv mean','cv_mean_f1','cv_mean_recall']) 
 
-title_transition = 'Graph embeddings - Node2Vec - accumulated data - Sum - 1 as passed, 0 as failed with practice data'
+title_transition = 'Activity Data Matrix - Prediction'
 algorithmList = []
 # algorithmList = []
 PredictionResult.algorithmComparisonGraph('cv mean',predictionReport_transition,algorithmList, title_transition)

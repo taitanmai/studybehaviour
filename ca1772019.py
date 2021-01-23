@@ -47,45 +47,45 @@ activityList = ['load','scroll','focus','blur','unload','hashchange','selection'
 basePath = 'D:\\Dataset\\PhD\\'
 
 #extract event log 
-eventLog_ca277 = pd.read_csv(basePath + 'ca277_eventLog_nonfixed.csv')
-
-eventLog_ca277 =eventLog_ca277.loc[eventLog_ca277['time:timestamp'] != ' ']
-eventLog_ca277['time:timestamp'] = pd.to_datetime(eventLog_ca277['time:timestamp'])
-eventLog_ca277 = eventLog_ca277.loc[:, ~eventLog_ca277.columns.str.contains('^Unnamed')]
+eventLog_ca177 = pd.read_csv(basePath + 'ca177_eventLog_nonfixed_2019.csv')
+eventLog_ca177 =eventLog_ca177.loc[eventLog_ca177['time:timestamp'] != ' ']
+eventLog_ca177['time:timestamp'] = pd.to_datetime(eventLog_ca177['time:timestamp'])
+eventLog_ca177 = eventLog_ca177.loc[:, ~eventLog_ca177.columns.str.contains('^Unnamed')]
 # materials = eventLog_ca116.loc[:,['org:resource','concept:name','description']]
-weeksEventLog = [g for n, g in eventLog_ca277.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
+weeksEventLog = [g for n, g in eventLog_ca177.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
 
 #process for new activity
 
 # lectureList = dataProcessing.getLectureList(eventLog_ca116,['html|py'])
 # eventLog_ca116_filtered = eventLog_ca116.loc[eventLog_ca116['description'].str.contains('|'.join(lectureList))]
-eventLog_ca277_filtered = eventLog_ca277.loc[eventLog_ca277['description'].str.contains('.html|.py|#|/einstein/')]
-eventLog_ca277_filtered['pageName'] = eventLog_ca277_filtered['description'].str.extract(r'([^\/][\S]+.html)', expand=False)
-eventLog_ca277_filtered['pageName'] = eventLog_ca277_filtered['pageName'].str.replace('.web','')
-eventLog_ca277_filtered = eventLog_ca277_filtered.drop(eventLog_ca277_filtered.loc[eventLog_ca277_filtered['concept:name'].isin(['click-0','click-1','click-2','click-3'])].index)
+eventLog_ca177_filtered = eventLog_ca177.loc[eventLog_ca177['description'].str.contains('.html|.py|#|/einstein/')]
+eventLog_ca177_filtered['pageName'] = eventLog_ca177_filtered['description'].str.extract(r'([^\/][\S]+.html)', expand=False)
+eventLog_ca177_filtered['pageName'] = eventLog_ca177_filtered['pageName'].str.replace('.web','')
+eventLog_ca177_filtered = eventLog_ca177_filtered.drop(eventLog_ca177_filtered.loc[eventLog_ca177_filtered['concept:name'].isin(['click-0','click-1','click-2','click-3'])].index)
 
-eventLog_ca277_filtered.loc[eventLog_ca277_filtered['description'].str.contains('correct|incorrect'),'pageName'] = 'Practice'
-eventLog_ca277_filtered.loc[eventLog_ca277_filtered['description'].str.contains('^\/einstein\/'),'pageName'] = 'Practice'
-eventLog_ca277_filtered['pageName'] = eventLog_ca277_filtered['pageName'].fillna('General')
+eventLog_ca177_filtered.loc[eventLog_ca177_filtered['description'].str.contains('correct|incorrect'),'pageName'] = 'Practice'
+eventLog_ca177_filtered.loc[eventLog_ca177_filtered['description'].str.contains('^\/einstein\/'),'pageName'] = 'Practice'
+eventLog_ca177_filtered['pageName'] = eventLog_ca177_filtered['pageName'].fillna('General')
 
-a = eventLog_ca277_filtered.loc[eventLog_ca277_filtered['pageName'] == 'General']
+a = eventLog_ca177_filtered.loc[eventLog_ca177_filtered['pageName'] == 'Practice']
 
-eventLog_ca277_filtered.rename(columns={'concept:instance':'concept:instance1',
+eventLog_ca177_filtered.rename(columns={'concept:instance':'concept:instance1',
                                    'concept:name':'concept:name1',
                                    'case:concept:name' : 'case:concept:name1'},  inplace=True)
-eventLog_ca277_filtered['concept:instance'] = eventLog_ca277_filtered['pageName']
-eventLog_ca277_filtered['concept:name'] = eventLog_ca277_filtered['pageName']
-eventLog_ca277_filtered['date'] = eventLog_ca277_filtered['time:timestamp'].dt.date
+eventLog_ca177_filtered['concept:instance'] = eventLog_ca177_filtered['pageName']
+eventLog_ca177_filtered['concept:name'] = eventLog_ca177_filtered['pageName']
+eventLog_ca177_filtered['date'] = eventLog_ca177_filtered['time:timestamp'].dt.date
 
-eventLog_ca277_filtered['case:concept:name'] = eventLog_ca277_filtered['date'].astype(str) + '-' + eventLog_ca277_filtered['org:resource'].astype(str)
+eventLog_ca177_filtered['case:concept:name'] = eventLog_ca177_filtered['date'].astype(str) + '-' + eventLog_ca177_filtered['org:resource'].astype(str)
 
 # eventLog_ca116_filtered['concept:name'] = eventLog_ca116_filtered['pageName'] + '*' + eventLog_ca116_filtered['concept:name1']
 # eventLog_ca116_filtered['concept:instance'] = eventLog_ca116_filtered['pageName'] + '*' + eventLog_ca116_filtered['concept:instance1']
 
-a = weeksEventLog_filtered[0].loc[weeksEventLog_filtered[0]['org:resource'] == 'u-caf2b360f1e89f5c5624d29a9eabfad0830f98ed']
 
-weeksEventLog_filtered = [g for n, g in eventLog_ca277_filtered.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
-weeksEventLog_filtered = weeksEventLog_filtered[0:12]
+weeksEventLog_filtered = [g for n, g in eventLog_ca177_filtered.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
+for i in weeksEventLog_filtered:
+    print(len(i))
+weeksEventLog_filtered = weeksEventLog_filtered[20:32]
 
 #------------- Extract number of activities and assign pageType dictionary for later use
 #--------- descriptive analysis
@@ -97,9 +97,9 @@ materialAccessedByWeek = pd.concat(listMaterials, axis=1)
 materialAccessedByWeek['ofWeek'] = ''
 materialAccessedByWeek['pageType'] = ''
 materialAccessedByWeek = materialAccessedByWeek.fillna(0)
-materialAccessedByWeek.to_csv(basePath + 'materialAccessedByWeek_ca277_2018.csv')
+materialAccessedByWeek.to_csv(basePath + 'materialAccessedByWeek_ca177_2019.csv')
 
-materialAccessedByWeek = pd.read_csv(basePath + 'materialAccessedByWeek_ca277_2018.csv', index_col=0)
+materialAccessedByWeek = pd.read_csv(basePath + 'materialAccessedByWeek_ca177_2019.csv', index_col=0)
 
 materialAccessedByWeek['sumOfpageActivity'] = materialAccessedByWeek.sum(axis = 1, skipna = True)
 accessedPageSummary = materialAccessedByWeek.loc[:,['pageType','sumOfpageActivity']].groupby([pd.Grouper('pageType')]).sum()
@@ -117,7 +117,7 @@ for w in range(0,12):
     
 a = weeksEventLog_filtered_pageType[6].sort_values(['case:concept:name','time:timestamp'])
 
-dataUpload = pd.read_csv(basePath + 'ca277_uploads.csv')
+dataUpload = pd.read_csv(basePath + 'ca177_uploads_2019.csv')
 dataUpload['date'] = pd.to_datetime(dataUpload.date)
 
 exUpload = dataUpload.loc[dataUpload['task'].str.match('ex')]
@@ -163,15 +163,16 @@ assessment['grade'] = (assessment['perCorrect1A']+assessment['perCorrect2A'])/3
 assessment['perPassed'] = (assessment['passed1A'] + assessment['passed2A'])/(assessment['passed1A'] + assessment['passed2A'] +
                         + assessment['failed1A']+ assessment['failed2A'])
 
-ex1_excellent = assessment1A.loc[(assessment1A['perCorrect1A'] <= 1) & (assessment1A['perCorrect1A'] >= 0.4)]
-ex1_weak = assessment1A.loc[(assessment1A['perCorrect1A'] >= 0) & (assessment1A['perCorrect1A'] < 0.4)]
+ex1_excellent = assessment1A.loc[(assessment1A['perCorrect1A'] <= 1) & (assessment1A['perCorrect1A'] >= 0.6)]
+ex1_weak = assessment1A.loc[(assessment1A['perCorrect1A'] >= 0) & (assessment1A['perCorrect1A'] < 0.6)]
 
-ex2_excellent = assessment2A.loc[(assessment2A['perCorrect2A'] <= 1)&(assessment2A['perCorrect2A'] >= 0.4)]
-ex2_weak = assessment2A.loc[(assessment2A['perCorrect2A'] >= 0) & (assessment2A['perCorrect2A'] < 0.4)]
+ex2_excellent = assessment2A.loc[(assessment2A['perCorrect2A'] <= 1)&(assessment2A['perCorrect2A'] >= 0.5)]
+ex2_weak = assessment2A.loc[(assessment2A['perCorrect2A'] >= 0) & (assessment2A['perCorrect2A'] < 0.5)]
 
 
 nonExUpload = dataUpload.drop(dataUpload.loc[dataUpload['task'].str.match('ex')].index)
 nonExUploadByWeek = [g for n, g in nonExUpload.groupby(pd.Grouper(key='date',freq='W'))]
+nonExUploadByWeek = nonExUploadByWeek[18:30]
 
 nonExUpload['version'].unique()
 #merge exam result with transition data matrix:
@@ -245,7 +246,6 @@ for w in range(0,12):
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
     # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
-    
     
 activityExamData = []   
 for w in range(0,12):
@@ -324,12 +324,12 @@ for w in range(0,12):
     transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, (transitionDataMatrixWeeks[w] != 0).any(axis=0)]
     
 for w in range(0,12):
-    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/ca277_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w'+str(w)+'.csv',index=True)
+    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1772019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv',index=True)
 
 #read csv iff neeeded
 transitionDataMatrixWeeks = []
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca277_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1772019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3,4,5]:
         studentList = assessment1A.index
     elif w in [6,7,8,9,10,11]:
@@ -403,9 +403,9 @@ for w in range(0,12):
     graph_all_weeks.append(graphBuild)
 
 graph_all_weeks_not_cleaned = []
-for w in range(1,12):
+for w in range(0,12):
     print('Week ' + str(w) + '...')
-    matrix = corrList[w]
+    matrix = corrList_dataNormalised[w]
     risk_estimators = ml.portfolio_optimization.RiskEstimators()
     tn_relation = transitionDataMatrixWeeks_directFollow_normalised[w].shape[0] / transitionDataMatrixWeeks_directFollow_normalised[w].shape[1]
     # The bandwidth of the KDE kernel
@@ -437,16 +437,15 @@ for w in range(0,12):
     num_comms = len(graph_all_weeks_not_cleaned[w].graph._node)
     communityListWeeks_not_cleaned.append(graphLearning.community_dection_graph(graph_all_weeks_not_cleaned[w], most_valuable_edge=graphLearning.most_central_edge, num_comms=num_comms))
 
-
 import graphLearning
 import scikit_posthocs as sp
 pd.set_option("display.max_rows", None, "display.max_columns", None)
-aw11 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[11], assessment2A, 'perCorrect2A')
-aw11t = sp.posthoc_conover(aw11[3][5])
+aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[10], assessment2A, 'perCorrect2A')
+aw10t = sp.posthoc_conover(aw10[1][5])
 
 
 aw6 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[6], assessment1A, 'perCorrect1A')
-aw6t = sp.posthoc_conover(aw7[3][5])
+aw6t = sp.posthoc_conover(aw6[3][5])
 
 a = graphLearning.findTogetherMembers(aw10[18][5],aw11[18][5], aw10[18][1],aw11[18][1])
 len(set(assessment2A.index).intersection(set(assessment3A.index)))
@@ -458,42 +457,69 @@ for i in range(0,8):
             print(a[i][j])
 
 
-goodCommunity = aw11[1][5][0]
-badCommunity = aw11[1][5][2]
-w = 11
+goodCommunity = aw10[1][5][0]
+badCommunity = aw10[1][5][1]
+w = 10
 extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(badCommunity.index)]
 extractGoodBadCommunity['group'] = 0
 extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(goodCommunity.index),['group']] = 0
-extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(badCommunity.index),['group']] = 2
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(badCommunity.index),['group']] = 1
 
 columnListStatsSig = []
 for c in extractGoodBadCommunity.columns:
-    t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 0, [c]])[1][0]
-    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]])[1][0]
+    t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]])[1][0]
+    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 0, [c]])[1][0]
     if t1 <= 0.1 and t2 <= 0.1:
         columnListStatsSig.append(c)
         
 extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, ['Lecture_4']].hist(bins=80)
 
+compareMean = []
 for c in extractGoodBadCommunity.columns:
     arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 0, [c]]
-    arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]]
-    test = stats.mannwhitneyu(arr1,arr2)[1]
-    if test <= 0.05:
-        meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 0, [c]].mean()[0]
-        meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] ==2, [c]].mean()[0]
-        print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community: ' + str(meanBad))
+    arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]]
+    try:
+        test = stats.mannwhitneyu(arr1,arr2)[1]
+        if test <= 0.05:
+            if c!= 'group':
+                meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 0, [c]].mean()[0]
+                meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]].mean()[0]
+                compareMean.append([c, meanGood, meanBad])
+    except:
+        continue
+        # print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community: ' + str(meanBad))
+compareMeanDf = pd.DataFrame(compareMean, columns=['Material','Best Group', 'Worst Group'])
+compareMeanDfnewCol = compareMeanDf['Material'].str.split('_', expand = True)
+compareMeanDf['week'] = compareMeanDfnewCol[1].astype(int)
+compareMeanDf['MaterialType'] = compareMeanDfnewCol[0]
+compareMeanDf = compareMeanDf.sort_values(['MaterialType','week'])
 
+#draw horizontal barchart for compare mean activity
+# create plot
+fig, ax = plt.subplots(figsize=(30,20), dpi=150)
+index = np.arange(len(compareMeanDf.index))
+bar_width = 0.4
+opacity = 1
+
+rects1 = plt.barh(index, compareMeanDf['Best Group'], bar_width, alpha=opacity, color='b', label='Best Group')
+rects2 = plt.barh(index + bar_width, compareMeanDf['Worst Group'], bar_width, alpha=opacity, color='g', label='Worst Group')
+
+plt.ylabel('Course Materials', fontsize=20)
+plt.xlabel('Average number of activities', fontsize=20)
+plt.title('')
+plt.yticks(index + bar_width, compareMeanDf.Material, fontsize=18)
+plt.xticks(fontsize=20)
+plt.legend(fontsize=25)
 
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
 countGraph = 0    
-for w in range(0,11): 
-    if w in [0,1,2,3,4]:
+for w in range(0,12): 
+    if w in [0,1,2,3,4,5]:
         excellent = ex1_excellent.index
         weak = ex1_weak.index
-    elif w in [5,6,7,8,9,10]:
+    elif w in [6,7,8,9,10,11]:
         excellent = ex2_excellent.index
         weak = ex2_weak.index        
     # excellent = exellentPractice[w]
@@ -584,11 +610,11 @@ for w in range(0,12):
 
 
 node_embeddings_2d_df_weeks = []
-for w in range(0,11):
-    if w in [0,1,2,3,4]:
+for w in range(0,12):
+    if w in [0,1,2,3,4,5,6]:
         excellent = ex1_excellent.index
         weak = ex1_weak.index
-    elif w in [5,6,7,8,9,10]:
+    elif w in [6,7,8,9,10,11]:
         excellent = ex2_excellent.index
         weak = ex2_weak.index     
     
@@ -612,7 +638,7 @@ for w in range(0,11):
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
 countGraph = 0
-for w in range(0,11):
+for w in range(0,12):
     ax = fig.add_subplot(3,4,w+1)
     graph.append(ax)
     graph[countGraph].set_xlabel('Dimension 1', fontsize = 15)
@@ -645,12 +671,12 @@ plt.show()
 workingWeekExcercise = []
 prediction_transition = []
 
-for week in range(0,11):
+for week in range(0,12):
     print('Predicting for Week ...' + str(week))
-    if week in [0,1,2,3,4]:
+    if week in [0,1,2,3,4,5,6]:
         excellent = ex1_excellent.index
         weak = ex1_weak.index
-    elif week in [5,6,7,8,9,10]:
+    elif week in [6,7,8,9,10,11]:
         excellent = ex2_excellent.index
         weak = ex2_weak.index                 
    
@@ -661,7 +687,7 @@ for week in range(0,11):
     prediction_transition.append(predictionResult)
 
 reportArray_transition = []
-for w in range(0,11):
+for w in range(0,12):
     for algorithm in prediction_transition[w]:
         if algorithm != 'data':
             reportArray_transition.append([w,algorithm, 
@@ -682,11 +708,6 @@ predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week
 title_transition = 'Graph embeddings - Node2Vec - accumulated data - Sum - 1 as passed, 0 as failed with practice data'
 algorithmList = []
 # algorithmList = []
-PredictionResult.algorithmComparisonGraph('roc_auc',predictionReport_transition,algorithmList, title_transition)
-.
-
-
-
-
+PredictionResult.algorithmComparisonGraph('cv mean',predictionReport_transition,algorithmList, title_transition)
 
 community.greedy_modularity_communities(graph_all_weeks[11].graph)
