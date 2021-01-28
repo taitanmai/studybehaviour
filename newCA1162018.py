@@ -425,6 +425,15 @@ for w in range(0,12):
     corrList.append(corrTemp)
     corrDistance = (2*(1 - corrTemp)).apply(np.sqrt)
     corrDistanceList.append(corrDistance)
+
+fig, ax = plt.subplots(1, 1, figsize = (15, 15), dpi=300)
+sns.heatmap(corrList[11], cmap='RdYlGn', yticklabels=False, xticklabels=False)
+plt.xlabel("Students")
+plt.ylabel("Students")
+
+sns.heatmap(detoned_matrix_byLib, cmap='RdYlGn', yticklabels=False, xticklabels=False)
+plt.xlabel("Students")
+plt.ylabel("Students")
     
 #correlation processing    
 corrList_dataNormalised = []
@@ -539,6 +548,27 @@ for i in range(0,8):
 
 goodCommunity = aw10[3][5][2]
 badCommunity = aw10[3][5][3]
+
+goodStudentEventLog = []
+workingWeekLog = []
+for w in range(0,12):
+    print('Week ' + str(w) + '...')
+    workingWeekLog.append(weeksEventLog_filtered_pageType[w].loc[weeksEventLog_filtered_pageType[w]['org:resource'].isin(goodCommunity.index)])
+goodStudentEventLog =  pd.concat(workingWeekLog)
+goodStudentEventLog.loc[:,['case:concept:name','pageTypeWeek','time:timestamp','org:resource','lifecycle:transition']].to_csv(basePath + 'ca1162018_goodStudentsLog.csv', index=False)
+a = goodStudentEventLog.loc[:,['case:concept:name','pageTypeWeek','time:timestamp','org:resource','lifecycle:transition']]
+a1 = a.loc[a['org:resource'] == 'u-19bad38d8231fe7f2fc601254aee8354cace7a43']
+
+badStudentEventLog = []
+workingWeekLog = []
+for w in range(0,12):
+    print('Week ' + str(w) + '...')
+    workingWeekLog.append(weeksEventLog_filtered_pageType[w].loc[weeksEventLog_filtered_pageType[w]['org:resource'].isin(badCommunity.index)])
+badStudentEventLog =  pd.concat(workingWeekLog)
+badStudentEventLog.loc[:,['case:concept:name','pageTypeWeek','time:timestamp','org:resource','lifecycle:transition']].to_csv(basePath + 'ca1162018_badStudentsLog.csv', index=False)
+
+weeksEventLog_filtered_pageType[w].columns
+
 w = 10
 extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(badCommunity.index)]
 extractGoodBadCommunity['group'] = 0
@@ -570,6 +600,34 @@ compareMeanDfnewCol = compareMeanDf['Material'].str.split('_', expand = True)
 compareMeanDf['week'] = compareMeanDfnewCol[1].astype(int)
 compareMeanDf['MaterialType'] = compareMeanDfnewCol[0]
 compareMeanDf = compareMeanDf.sort_values(['MaterialType','week'])
+
+
+#detect transition
+
+w = 10
+extractGoodBadCommunityTransition = transitionDataMatrixWeeks[w].loc[transitionDataMatrixWeeks[w].index.astype(str).isin(goodCommunity.index) | transitionDataMatrixWeeks[w].index.astype(str).isin(badCommunity.index)]
+extractGoodBadCommunityTransition['group'] = 0
+extractGoodBadCommunityTransition.loc[extractGoodBadCommunityTransition.index.astype(str).isin(goodCommunity.index),['group']] = 2
+extractGoodBadCommunityTransition.loc[extractGoodBadCommunityTransition.index.astype(str).isin(badCommunity.index),['group']] = 3
+
+compareMeanTransition = []
+for c in extractGoodBadCommunityTransition.columns:
+    arr1 = extractGoodBadCommunityTransition.loc[extractGoodBadCommunity['group'] == 3, [c]]
+    arr2 = extractGoodBadCommunityTransition.loc[extractGoodBadCommunity['group'] == 2, [c]]
+    try:
+        test = stats.mannwhitneyu(arr1,arr2)[1]
+        if test <= 0.05:
+            if c!= 'group':
+                if c.split('-')[0] != c.split('-')[1]:
+                    meanGood = extractGoodBadCommunityTransition.loc[extractGoodBadCommunityTransition['group'] == 2, [c]].mean()[0]
+                    meanBad = extractGoodBadCommunityTransition.loc[extractGoodBadCommunityTransition['group'] == 3, [c]].mean()[0]
+                    compareMeanTransition.append([c, meanGood, meanBad])
+    except:
+        continue
+        # print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community: ' + str(meanBad))
+compareMeanTransitionDf = pd.DataFrame(compareMeanTransition, columns=['Transition','Best Group', 'Worst Group'])
+
+
 
 #draw horizontal barchart for compare mean activity
 # create plot

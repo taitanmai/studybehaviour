@@ -674,15 +674,15 @@ prediction_transition = []
 for week in range(0,12):
     print('Predicting for Week ...' + str(week))
     if week in [0,1,2,3,4,5,6]:
-        excellent = ex1_excellent.index
-        weak = ex1_weak.index
+        excellent = ex2_excellent.index
+        weak = ex2_weak.index
     elif week in [6,7,8,9,10,11]:
         excellent = ex2_excellent.index
         weak = ex2_weak.index                 
    
     cummulativeResult = []
     
-    dataForPrediction = node_embeddings_weeks
+    dataForPrediction = activityDataMatrixWeeks_pageTypeWeek #node_embeddings_weeks
     predictionResult = PredictionResult.predict_proba_all_algorithms_data_ready(dataForPrediction[week], excellent, weak, cummulativeResult)
     prediction_transition.append(predictionResult)
 
