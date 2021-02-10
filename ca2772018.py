@@ -441,8 +441,8 @@ for w in range(0,12):
 import graphLearning
 import scikit_posthocs as sp
 pd.set_option("display.max_rows", None, "display.max_columns", None)
-aw11 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[11], assessment2A, 'perCorrect2A')
-aw11t = sp.posthoc_conover(aw11[3][5])
+aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[10], assessment2A, 'perCorrect2A')
+aw10t = sp.posthoc_conover(aw10[0][5])
 
 
 aw6 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[6], assessment1A, 'perCorrect1A')

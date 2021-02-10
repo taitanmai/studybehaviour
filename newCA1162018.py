@@ -263,9 +263,14 @@ for w in range(0,12):
     # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
 
+for w in range(0,12):
+    activityDataMatrixWeeks_pageTypeWeek[w] = graphLearning.mapNewLabel(activityDataMatrixWeeks_pageTypeWeek[w] ,reLabelIndex)
 
 for w in range(0,12):
     activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv',index=True)
+
+
+a = activityDataMatrixWeeks_pageTypeWeek[11].columns
 
 activityExamData = []   
 for w in range(0,12):
@@ -372,13 +377,13 @@ transitionDataMatrixWeeks = []
 for w in range(0,12):
     temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
-        studentList = assessment1A.index
+        studentList = assessment1A.index.astype(str)
     elif w in [4,5,6,7]:
-        studentList = assessment2A.index     
+        studentList = assessment2A.index.astype(str)     
     else:
-        studentList = assessment3A.index
+        studentList = assessment3A.index.astype(str)
     temp = temp.loc[temp.index.isin(studentList)]
-    # temp = graphLearning.mapNewLabel(temp, reLabelIndex)
+    temp = graphLearning.mapNewLabel(temp, reLabelIndex)
     # temp = temp.drop(['Practice_0-Practice_0'],axis=1)
     # if w == 1:
     #     temp = temp.drop([8])
@@ -423,7 +428,7 @@ corrDistanceList = []
 for w in range(0,12):
     corrTemp = transitionDataMatrixWeeks_directFollow_standardised[w].corr()
     corrList.append(corrTemp)
-    corrDistance = (2*(1 - corrTemp)).apply(np.sqrt)
+    corrDistance = (0.5*(1 - corrTemp)).apply(np.sqrt)
     corrDistanceList.append(corrDistance)
 
 fig, ax = plt.subplots(1, 1, figsize = (15, 15), dpi=300)
@@ -460,10 +465,15 @@ for w in range(0,12):
     # detoned_matrix_byLib = matrix #no denoised and detoned
     
     detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
-    distance_matrix = (2*(1 - detoned_matrix_byLib)).apply(np.sqrt)
+    distance_matrix = (0.5*(1 - detoned_matrix_byLib)).apply(np.sqrt)
     graphBuild = MST(distance_matrix, 'distance')
     # graphBuild = nx.from_pandas_adjacency(distance_matrix)   
     graph_all_weeks.append(graphBuild)
+
+fig, ax = plt.subplots(1, 1, figsize = (15, 15), dpi=300)
+sns.heatmap(corrDistanceList[11], cmap='RdYlGn', yticklabels=False, xticklabels=False)
+plt.xlabel("Students")
+plt.ylabel("Students")
 
 graph_all_weeks_not_cleaned = []
 for w in range(0,12):
@@ -534,9 +544,7 @@ aw10t = sp.posthoc_conover(aw10[18][5])
 aw7 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[7], assessment2A, 'perCorrect2A')
 aw7t = sp.posthoc_conover(aw7[18][5])
 
-a = graphLearning.findTogetherMembers(aw10[18][5],aw11[18][5], aw10[18][1],aw11
-                                      
-                                      [18][1])
+a = graphLearning.findTogetherMembers(aw10[18][5],aw11[18][5], aw10[18][1],aw11[18][1])
 len(set(assessment2A.index).intersection(set(assessment3A.index)))
 
 a = graphLearning.findTogetherMembers(aw7[18][5],aw11[18][5], aw7[18][1],aw11[18][1])
@@ -547,7 +555,7 @@ for i in range(0,8):
 
 
 goodCommunity = aw10[3][5][2]
-badCommunity = aw10[3][5][3]
+badCommunity = aw10[3][5][4]
 
 goodStudentEventLog = []
 workingWeekLog = []
@@ -570,15 +578,16 @@ badStudentEventLog.loc[:,['case:concept:name','pageTypeWeek','time:timestamp','o
 weeksEventLog_filtered_pageType[w].columns
 
 w = 10
-extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(badCommunity.index)]
+extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(goodCommunity.index) | 
+                                                                      activityDataMatrixWeeks_pageTypeWeek[w].index.astype(int).isin(badCommunity.index)]
 extractGoodBadCommunity['group'] = 0
-extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(goodCommunity.index),['group']] = 2
-extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(badCommunity.index),['group']] = 3
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(goodCommunity.index),['group']] = 2
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(int).isin(badCommunity.index),['group']] = 4
 
 columnListStatsSig = []
 for c in extractGoodBadCommunity.columns:
     t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]])[1][0]
-    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]])[1][0]
+    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]])[1][0]
     if t1 <= 0.1 and t2 <= 0.1:
         columnListStatsSig.append(c)
         
@@ -586,13 +595,13 @@ extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, ['Lecture_4']
 
 compareMean = []
 for c in extractGoodBadCommunity.columns:
-    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]]
+    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]]
     arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]]
     test = stats.mannwhitneyu(arr1,arr2)[1]
     if test <= 0.05:
         if c!= 'group':
             meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, [c]].mean()[0]
-            meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 3, [c]].mean()[0]
+            meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]].mean()[0]
             compareMean.append([c, meanGood, meanBad])
         # print(c + ': ' + str(test) + ' Good Community: ' + str(meanGood) + ' -- ' + 'Bad Community: ' + str(meanBad))
 compareMeanDf = pd.DataFrame(compareMean, columns=['Material','Best Group', 'Worst Group'])
@@ -749,9 +758,9 @@ ex2_weak = graphLearning.mapNewLabel(ex2_weak, reLabelIndex)
 ex3_excellent = graphLearning.mapNewLabel(ex3_excellent, reLabelIndex)
 ex3_weak = graphLearning.mapNewLabel(ex3_weak, reLabelIndex)
 
-excellentList = ex1_excellent.index
-weakList = ex1_weak.index
-graphLearning.visualiseMSTGraph(graph_all_weeks[3], excellentList, weakList , reLabelIndex)  
+excellentList = ex3_excellent.index
+weakList = ex3_weak.index
+graphLearning.visualiseMSTGraph(graph_all_weeks[10], excellentList, weakList , reLabelIndex)  
 
 
 
@@ -880,7 +889,7 @@ predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week
                                                      'f1_score','precision','recall',
                                                      'roc_auc','cv mean','cv_mean_f1','cv_mean_recall']) 
 
-title_transition = 'Graph embeddings - node2vec - accumulated data - Sum - MST graph Data'
+title_transition = ''
 algorithmList = []
 # algorithmList = []
 PredictionResult.algorithmComparisonGraph('cv mean',predictionReport_transition,algorithmList, title_transition)
@@ -890,3 +899,62 @@ community.greedy_modularity_communities(graph_all_weeks[11].graph)
 #--------------- PREDCTION with activity data --------------------------------------------------#
 #---------------------------------------------------------------------------------#
 
+#IPR
+pca_result = []
+pcaDataWeeks = []
+columnsReturn2 = []
+for w in range(0,12):
+    # tempData = transitionDataMatrixWeeks[w].loc[:,columns]
+    tempData = transitionDataMatrixWeeks_directFollow_standardised[w]
+    # tempData = tempData.merge(prediction_transition[w+1]['data']['successPassedRate'], left_on = tempData.index, right_on=prediction_transition[w+1]['data']['successPassedRate'].index).set_index('key_0')
+    temp = FCAMiner.PCAcohortToValue(tempData)
+    temp1 = temp[1]
+    pcaResult = temp[0]
+    # temp1 = temp1.merge(prediction_transition[w+1]['data']['result_exam_1'], left_on = temp1.index, right_on=prediction_transition[w+1]['data']['result_exam_1'].index).set_index('key_0')
+    pcaDataWeeks.append(temp1)
+    pca_result.append(pcaResult)
+    columnsReturn2.append(temp[2])
+
+fig = plt.figure(figsize=(40,30),dpi=240)
+graph = []
+countGraph = 0
+num_bins = 50
+for w in range(0,12):
+    ax = fig.add_subplot(3,4,w+1)
+    graph.append(ax)
+    graph[countGraph].set_xlabel('Eigenvalues', fontsize = 15)
+    graph[countGraph].set_ylabel('IPR', fontsize = 15)
+    graph[countGraph].set_title('Inverse Participation Ratio week ' + str(w+1), fontsize = 20)
+    graph[countGraph].grid()
+    # graph[countGraph].axhline(y=0, color='k')
+    # graph[countGraph].axvline(x=0, color='k')
+    eigenValueList = pca_result[w].explained_variance_
+    eigenVectorList = pca_result[w].components_
+    IPRlist = libRMT.IPRarray(eigenValueList,eigenVectorList)
+    graph[countGraph].axhline(y=IPRlist['IPR'].mean(), color='k', label='mean value of IPR') 
+    graph[countGraph].plot(IPRlist['eigenvalue'], IPRlist['IPR'], '-', color ='blue', label='IPR')
+    graph[countGraph].legend(loc='upper right')
+    countGraph = countGraph + 1           
+plt.show()
+
+#draw one graph only:
+fig = plt.figure(figsize=(30,20),dpi=120)
+ax = fig.subplots()
+ax.set_xlabel('Eigenvalues', fontsize = 30)
+ax.set_ylabel('IPR', fontsize = 30)
+ax.tick_params(axis='both', which='major', labelsize=25)
+ax.tick_params(axis='both', which='minor', labelsize=25)
+ax.set_title('Inverse Participation Ratio week ' + str(w+1), fontsize = 30)
+ax.grid()
+# graph[countGraph].axhline(y=0, color='k')
+# graph[countGraph].axvline(x=0, color='k')
+eigenValueList = pca_result[11].explained_variance_
+eigenVectorList = pca_result[11].components_
+IPRlist = libRMT.IPRarray(eigenValueList,eigenVectorList)
+ax.axhline(y=IPRlist['IPR'].mean(), color='k', label='mean value of IPR') 
+ax.plot(IPRlist['eigenvalue'], IPRlist['IPR'], '-', color ='blue', label='IPR')
+ax.legend(loc='upper right')
+plt.show()
+
+#outbounce select
+a = libRMT.selectOutboundComponents(pcaDataWeeks[11],eigenValueList)

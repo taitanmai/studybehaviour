@@ -251,6 +251,8 @@ for w in range(0,12):
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
     # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
+
+a = activityDataMatrixWeeks_pageTypeWeek[11].columns
     
 activityExamData = []   
 for w in range(0,12):
@@ -446,7 +448,7 @@ import graphLearning
 import scikit_posthocs as sp
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[10], assessment2A, 'perCorrect2A')
-aw10t = sp.posthoc_conover(aw10[3][5])
+aw10t = sp.posthoc_conover(aw10[1][5])
 
 
 aw6 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[6], assessment1A, 'perCorrect1A')
@@ -462,18 +464,18 @@ for i in range(0,8):
             print(a[i][j])
 
 
-goodCommunity = aw10[3][5][4]
-badCommunity = aw10[3][5][1]
+goodCommunity = aw10[1][5][0]
+badCommunity = aw10[1][5][1]
 w = 10
 extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(badCommunity.index)]
 extractGoodBadCommunity['group'] = 0
-extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(goodCommunity.index),['group']] = 4
+extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(goodCommunity.index),['group']] = 0
 extractGoodBadCommunity.loc[extractGoodBadCommunity.index.astype(str).isin(badCommunity.index),['group']] = 1
 
 columnListStatsSig = []
 for c in extractGoodBadCommunity.columns:
     t1 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]])[1][0]
-    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]])[1][0]
+    t2 = stats.normaltest(extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 0, [c]])[1][0]
     if t1 <= 0.1 and t2 <= 0.1:
         columnListStatsSig.append(c)
         
@@ -481,13 +483,13 @@ extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 2, ['Lecture_4']
 
 compareMean = []
 for c in extractGoodBadCommunity.columns:
-    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]]
+    arr1 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 0, [c]]
     arr2 = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]]
     try:
         test = stats.mannwhitneyu(arr1,arr2)[1]
         if test <= 0.05:
             if c!= 'group':
-                meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 4, [c]].mean()[0]
+                meanGood = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 0, [c]].mean()[0]
                 meanBad = extractGoodBadCommunity.loc[extractGoodBadCommunity['group'] == 1, [c]].mean()[0]
                 compareMean.append([c, meanGood, meanBad])
     except:

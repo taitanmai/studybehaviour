@@ -295,14 +295,14 @@ def algorithmComparisonGraph(field, predictionReport, algorithmList, title = '')
     colorList = ['b','g', 'r', 'c', 'm', 'y', 'k', 'purple']
     for al,color in zip(algorithmList,colorList):
         data_al = predictionReport.loc[predictionReport['algorithm'] == al] 
-        plt.plot(data_al['week'], data_al[field],
+        plt.plot(data_al['week'] + 1, data_al[field],
                   'o-', color=color, label=al, markersize=10)
 
         # plt.plot(predictionReport['week'], predictionReport['recall'],
         #           'o-', color='orange', label='recall_score', markersize=10)
     plt.title(title,fontsize=20)  
-    plt.xticks(np.arange(0, 14), fontsize=20)
-    plt.yticks(np.arange(0, 1.1, 0.1), fontsize=20)
+    plt.xticks(np.arange(1, 13), fontsize=20)
+    plt.yticks(np.arange(0.2, 0.9, 0.1), fontsize=20)
     plt.xlabel("Week", fontsize=20)
     plt.ylabel(field + ' Scores', fontsize=20)
     plt.grid()

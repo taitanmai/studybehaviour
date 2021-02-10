@@ -163,11 +163,11 @@ assessment['grade'] = (assessment['perCorrect1A']+assessment['perCorrect2A'])/3
 assessment['perPassed'] = (assessment['passed1A'] + assessment['passed2A'])/(assessment['passed1A'] + assessment['passed2A'] +
                         + assessment['failed1A']+ assessment['failed2A'])
 
-ex1_excellent = assessment1A.loc[(assessment1A['perCorrect1A'] <= 1) & (assessment1A['perCorrect1A'] >= 0.6)]
-ex1_weak = assessment1A.loc[(assessment1A['perCorrect1A'] >= 0) & (assessment1A['perCorrect1A'] < 0.6)]
+ex1_excellent = assessment1A.loc[(assessment1A['perCorrect1A'] <= 1) & (assessment1A['perCorrect1A'] >= 0.7)]
+ex1_weak = assessment1A.loc[(assessment1A['perCorrect1A'] >= 0) & (assessment1A['perCorrect1A'] < 0.7)]
 
-ex2_excellent = assessment2A.loc[(assessment2A['perCorrect2A'] <= 1)&(assessment2A['perCorrect2A'] >= 0.5)]
-ex2_weak = assessment2A.loc[(assessment2A['perCorrect2A'] >= 0) & (assessment2A['perCorrect2A'] < 0.5)]
+ex2_excellent = assessment2A.loc[(assessment2A['perCorrect2A'] <= 1)&(assessment2A['perCorrect2A'] >= 0.7)]
+ex2_weak = assessment2A.loc[(assessment2A['perCorrect2A'] >= 0) & (assessment2A['perCorrect2A'] < 0.7)]
 
 
 nonExUpload = dataUpload.drop(dataUpload.loc[dataUpload['task'].str.match('ex')].index)
@@ -246,6 +246,8 @@ for w in range(0,12):
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
     # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
+ 
+a = activityDataMatrixWeeks_pageTypeWeek[11].columns
     
 activityExamData = []   
 for w in range(0,12):
@@ -441,7 +443,7 @@ import graphLearning
 import scikit_posthocs as sp
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[10], assessment2A, 'perCorrect2A')
-aw10t = sp.posthoc_conover(aw10[1][5])
+aw10t = sp.posthoc_conover(aw10[0][5])
 
 
 aw6 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks[6], assessment1A, 'perCorrect1A')
@@ -457,8 +459,11 @@ for i in range(0,8):
             print(a[i][j])
 
 
-goodCommunity = aw10[1][5][0]
-badCommunity = aw10[1][5][1]
+goodCommunity = aw10[0][5][0]
+badCommunity = aw10[0][5][1]
+
+
+
 w = 10
 extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(goodCommunity.index) | activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(badCommunity.index)]
 extractGoodBadCommunity['group'] = 0
@@ -510,6 +515,8 @@ plt.title('')
 plt.yticks(index + bar_width, compareMeanDf.Material, fontsize=18)
 plt.xticks(fontsize=20)
 plt.legend(fontsize=25)
+
+
 
 
 fig = plt.figure(figsize=(40,30),dpi=240)
