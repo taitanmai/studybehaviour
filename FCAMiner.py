@@ -60,15 +60,10 @@ def activityDataMatrixRelativeCorrelation(activityDataMatrix):
         result.append(rowResult)
     return pd.DataFrame(result,columns=cols,index=indexList)
 
-def activityTimeDataMatrixContruct(df, date1 = '', date2 = ''): #Inprogress
-    activityList = df['concept:name'].unique()
+def activityTimeDataMatrixContruct(df, ActivityColumn): #Inprogress
+    activityList = df[ActivityColumn].unique()
     result = []
-    
-    if date1 == '':
-        if date2 != '':
-            df = df.loc[df['time:timestamp']<=date2]
-    else:
-        df = df.loc[(df['time:timestamp']>=date1)&(df['time:timestamp']<=date2)]
+
         
     for al in activityList:
         tempAct = df.loc[df['concept:name'] == al]
@@ -192,9 +187,9 @@ def transitionDataMatrixConstruct_eventuallyFollow(dfEventLog, originalElements 
     activityVariance = pd.DataFrame(allRow,columns=columns,index=indexList)
     return activityVariance
 
-def transitionDataMatrixConstruct_time(dfEventLog, originalElements = []):
+def transitionDataMatrixConstruct_time(dfEventLog, originalElements = [], activityColumn = 'concept:instance'):
     if len(originalElements) == 0:
-        originalElements = dfEventLog['concept:name'].unique()
+        originalElements = dfEventLog[activityColumn].unique()
     columns = []
     # columns.append('case')
     # columns.append('startDate')
@@ -206,11 +201,11 @@ def transitionDataMatrixConstruct_time(dfEventLog, originalElements = []):
             txt = i + '-' + j
             columns.append(txt)
     columns = list(dict.fromkeys(columns))
-    
+
     allRow = []
     allRow1 = []
     dfEventLog['case'] = dfEventLog['case:concept:name']
-    dfEventLog['activity'] = dfEventLog['concept:name']
+    dfEventLog['activity'] = dfEventLog[activityColumn]
     dfEventLog = dfEventLog.set_index(['case','activity'])
     dfEventLog = dfEventLog.sort_values(by=['case','time:timestamp'])
     indexList = []
@@ -223,8 +218,8 @@ def transitionDataMatrixConstruct_time(dfEventLog, originalElements = []):
         # newRow['startDate'] = row['time:timestamp'][0]
         # newRow['endDate'] = row['time:timestamp'][len(row)-1]
         # newRow['case'] = index
-        for i in range(len(row['concept:instance'])-1):
-            key = row['concept:instance'][i]+'-'+row['concept:instance'][i+1]
+        for i in range(len(row[activityColumn])-1):
+            key = row[activityColumn][i]+'-'+row[activityColumn][i+1]
             tempTime = ((row['time:timestamp'][i+1] - row['time:timestamp'][i])/np.timedelta64(1,'s'))
             if key in columns:
                 if key not in newRow:

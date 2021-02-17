@@ -255,4 +255,3 @@ def cleanDataWeek(normalisedDataWeek):
     detoned_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth, detone=True)
     detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
 
-    

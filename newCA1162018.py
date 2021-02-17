@@ -188,6 +188,8 @@ nonExUpload['version'].unique()
 #merge exam result with transition data matrix:
 reLabelIndex = dataProcessing.reLabelStudentId(assessment.index)
 
+#exam result
+
 
 #practice results
 workingWeekExcercise = []
@@ -266,8 +268,14 @@ for w in range(0,12):
 for w in range(0,12):
     activityDataMatrixWeeks_pageTypeWeek[w] = graphLearning.mapNewLabel(activityDataMatrixWeeks_pageTypeWeek[w] ,reLabelIndex)
 
+#read data page activity
 for w in range(0,12):
     activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv',index=True)
+
+#read data page activity
+activityDataMatrixWeeks_pageTypeWeek = []
+for w in range(0,12):
+    activityDataMatrixWeeks_pageTypeWeek.append(pd.read_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv',index_col=0))
 
 
 a = activityDataMatrixWeeks_pageTypeWeek[11].columns
@@ -566,7 +574,7 @@ goodStudentEventLog =  pd.concat(workingWeekLog)
 goodStudentEventLog.loc[:,['case:concept:name','pageTypeWeek','time:timestamp','org:resource','lifecycle:transition']].to_csv(basePath + 'ca1162018_goodStudentsLog.csv', index=False)
 a = goodStudentEventLog.loc[:,['case:concept:name','pageTypeWeek','time:timestamp','org:resource','lifecycle:transition']]
 a1 = a.loc[a['org:resource'] == 'u-19bad38d8231fe7f2fc601254aee8354cace7a43']
-
+f
 badStudentEventLog = []
 workingWeekLog = []
 for w in range(0,12):
@@ -905,7 +913,7 @@ pcaDataWeeks = []
 columnsReturn2 = []
 for w in range(0,12):
     # tempData = transitionDataMatrixWeeks[w].loc[:,columns]
-    tempData = transitionDataMatrixWeeks_directFollow_standardised[w]
+    tempData = activityDataMatrixWeeks_pageTypeWeek[w]
     # tempData = tempData.merge(prediction_transition[w+1]['data']['successPassedRate'], left_on = tempData.index, right_on=prediction_transition[w+1]['data']['successPassedRate'].index).set_index('key_0')
     temp = FCAMiner.PCAcohortToValue(tempData)
     temp1 = temp[1]
@@ -914,6 +922,16 @@ for w in range(0,12):
     pcaDataWeeks.append(temp1)
     pca_result.append(pcaResult)
     columnsReturn2.append(temp[2])
+
+   
+for w in range(0,12):
+    pcaDataWeeks[w]['result_exam_1'] = 0
+    if w in [0,1,2,3]:
+        pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex1_excellent.index),['result_exam_1']] = 1
+    elif w in [4,5,6,7]:
+        pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex2_excellent.index),['result_exam_1']] = 1
+    else:
+        pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex3_excellent.index),['result_exam_1']] = 1
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
@@ -957,4 +975,265 @@ ax.legend(loc='upper right')
 plt.show()
 
 #outbounce select
-a = libRMT.selectOutboundComponents(pcaDataWeeks[11],eigenValueList)
+a = libRMT.selectOutboundComponents(pcaDataWeeks[11],pca_result[11].explained_variance_)
+
+#bibplot
+def biplot(score, coeff , y, columns):
+    '''
+    Author: Serafeim Loukas, serafeim.loukas@epfl.ch
+    Inputs:
+       score: the projected data
+       coeff: the eigenvectors (PCs)
+       y: the class labels
+   '''
+    xs = score.loc[:,['pc1']] # projection on PC1
+    ys = score.loc[:,['pc2']] # projection on PC2
+
+    n = coeff.shape[0] # number of variables
+    plt.figure(figsize=(10,8), dpi=100)
+    classes = np.unique(y)
+    colors = ['g','r','y']
+    markers=['o','^','x']
+    for s,l in enumerate(classes):
+        plt.scatter(score.loc[score['result_exam_1'] == l,['pc1']],
+                    score.loc[score['result_exam_1'] == l,['pc2']], 
+                    c = colors[s], marker=markers[s]) # color based on group
+
+    plt.xlabel("PC{}".format(1), size=14)
+    plt.ylabel("PC{}".format(2), size=14)
+    limx= int(xs.max()) + 1
+    limy= int(ys.max()) + 1
+    plt.xlim([-limx,limx])
+    plt.ylim([-limy,limy])
+    plt.grid()
+    plt.tick_params(axis='both', which='both', labelsize=14)
+    
+    plt.figure(figsize=(10,8), dpi=100)
+    for i in range(n):
+        #plot as arrows the variable scores (each variable has a score for PC1 and one for PC2)
+        plt.arrow(0, 0, coeff[i,0], coeff[i,1], color = 'k', alpha = 0.9,linestyle = '-',linewidth = 1.5, overhang=0.2)
+        plt.text(coeff[i,0]* 1.05, coeff[i,1] * 1.05, str(columns[i]), color = 'k', ha = 'center', va = 'center',fontsize=9)
+
+    plt.xlabel("PC{}".format(1), size=14)
+    plt.ylabel("PC{}".format(2), size=14)
+    limx= 0.5
+    limy= 0.5
+    plt.xlim([-limx,limx])
+    plt.ylim([-limy,limy])
+    plt.grid()
+    plt.tick_params(axis='both', which='both', labelsize=14)
+
+w = 8    
+biplot(pcaDataWeeks[w],
+       np.transpose(pca_result[w].components_[0:2, :]),
+       pcaDataWeeks[w].loc[:,['result_exam_1']], activityDataMatrixWeeks_pageTypeWeek[w].columns)
+
+#plot loadings
+def plotLoadings(week,pca_result,transitionDataMatrixWeeks, columnsReturn1):
+    loadings = pd.DataFrame(pca_result[week].components_[0:8, :], 
+                            columns=columnsReturn1[week])
+    maxPC = 1.01 * np.max(np.max(np.abs(loadings.loc[0:8, :])))
+    f, axes = plt.subplots(1, 8, figsize=(20, 20), sharey=True)
+    for i, ax in enumerate(axes):
+        pc_loadings = loadings.loc[i, :]
+        colors = ['C0' if l > 0 else 'C1' for l in pc_loadings]
+        ax.axvline(color='#888888')
+        ax.axvline(x=0.1, color='#888888')
+        ax.axvline(x=-0.1, color='#888888')
+        pc_loadings.plot.barh(ax=ax, color=colors)
+        ax.set_xlabel(f'PC{i+1}')
+        ax.set_xlim(-maxPC, maxPC)
+    plt.title('Week '+str(week+1))
+    
+plotLoadings(1,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+plotLoadings(7,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+plotLoadings(11,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+
+pc = 8
+from scipy import stats
+for w in range(0,12):
+    if 'pc'+str(pc) in pcaDataWeeks[w].columns:
+        a1 = pcaDataWeeks[w].loc[pcaDataWeeks[w]['result_exam_1'] == 1,['pc'+str(pc)]]
+        b1 = pcaDataWeeks[w].loc[pcaDataWeeks[w]['result_exam_1'] == 0,['pc' + str(pc)]]
+        t1, p1 = stats.ttest_ind(a1,b1)
+    
+        
+        print('Week ' + str(w) + ':')
+        print('--PC' + str(pc) + ': ' + 't-value: ' + str(t1) + ' p-value: ' + str(p1))
+        print('-- Excellent: ' + str(a1.mean()[0]))
+        print('-- Weak: ' + str(b1.mean()[0]))
+    
+################################ Time analysis
+#time calculating
+transitionDataTimeByWeeks = []
+workingWeekLog = []
+for week in range(0,12):
+    workingWeekLog.append(weeksEventLog_filtered_pageType[week])
+    LogPageactivityCountByUser =  pd.concat(workingWeekLog)
+    transitionDataTimeByWeeks.append(FCAMiner.transitionDataMatrixConstruct_time(LogPageactivityCountByUser, activityColumn = 'pageTypeWeek')[0])
+for w in range(0,12):
+    transitionDataTimeByWeeks[w] = transitionDataTimeByWeeks[w].fillna(0).groupby([pd.Grouper(key='user')]).sum()
+    
+#eliminate zero column    
+for w in range(0,12):
+    transitionDataTimeByWeeks[w] = transitionDataTimeByWeeks[w].loc[:, (transitionDataTimeByWeeks[w] != 0).any(axis=0)]
+
+#read data page activity
+for w in range(0,12):
+    transitionDataTimeByWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/transitionDataTimeByWeeks_w'+str(w)+'.csv',index=True)
+
+    
+activityDataTimeByWeeks = []
+workingWeekLog = []
+for w in range(0,12):
+    workingWeekLog.append(weeksEventLog_filtered_pageType[w])
+    LogPageactivityCountByUser =  pd.concat(workingWeekLog)
+    activityList = LogPageactivityCountByUser['pageTypeWeek'].unique()
+    transitionList = transitionDataTimeByWeeks[w].columns
+    for i in activityList:
+        transitionDataTimeByWeeks[w][i] = 0
+        for t in transitionList:
+            if t.split('-')[0] == i:
+                transitionDataTimeByWeeks[w][i] = transitionDataTimeByWeeks[w][i] + transitionDataTimeByWeeks[w][t]
+    activityDataTimeByWeeks.append(transitionDataTimeByWeeks[w].loc[:,activityList])
+            
+#correlation analysis -> not good  
+activityExamData = []   
+for w in range(0,12):
+    temp = activityDataTimeByWeeks[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataTimeByWeeks[w].index.astype(str), right_on=cummulativeExerciseWeeks[w].index)
+    temp = temp.set_index(['key_0'])
+    if w in [0,1,2,3]:
+        studentResult = assessment1A
+    elif w in [4,5,6,7]:
+        studentResult = assessment2A
+    else:
+        studentResult = assessment3A
+    temp = temp.merge(studentResult, left_on=temp.index, right_on=studentResult.index)
+    temp = temp.set_index(['key_0'])
+    if -1 in temp.index:
+        temp = temp.drop([-1])
+    activityExamData.append(temp)
+
+a =  activityExamData[11].corr()
+a1 = a['perCorrect3A'].sort_values()
+
+a =  activityExamData[7].corr()
+a2 = a['perCorrect2A'].sort_values()
+
+a =  activityExamData[3].corr()
+a3 = a['perCorrect1A'].sort_values()
+
+
+examCorrelation = pd.concat([a3,a2,a1], axis=1)
+pageTypeWeekList = pd.concat([weeksEventLog_filtered_pageType[i] for i in range(0,12)])['pageTypeWeek'].unique()
+examCorrelation = examCorrelation.loc[examCorrelation.index.isin(pageTypeWeekList)]
+examCorrelation = examCorrelation.sort_index()
+examCorrelation.rename(columns={'perCorrect1A':'Lab Exam 1',
+                          'perCorrect2A':'Lab Exam 2',
+                          'perCorrect3A':'Lab Exam 3'}, 
+                  inplace=True)
+sns.heatmap(examCorrelation, cmap='RdYlGn')    
+
+#IPR
+pca_result = []
+pcaDataWeeks = []
+columnsReturn2 = []
+for w in range(0,12):
+    # tempData = transitionDataMatrixWeeks[w].loc[:,columns]
+    tempData = activityDataTimeByWeeks[w]
+    # tempData = tempData.merge(prediction_transition[w+1]['data']['successPassedRate'], left_on = tempData.index, right_on=prediction_transition[w+1]['data']['successPassedRate'].index).set_index('key_0')
+    temp = FCAMiner.PCAcohortToValue(tempData)
+    temp1 = temp[1]
+    pcaResult = temp[0]
+    # temp1 = temp1.merge(prediction_transition[w+1]['data']['result_exam_1'], left_on = temp1.index, right_on=prediction_transition[w+1]['data']['result_exam_1'].index).set_index('key_0')
+    pcaDataWeeks.append(temp1)
+    pca_result.append(pcaResult)
+    columnsReturn2.append(temp[2])
+
+   
+for w in range(0,12):
+    pcaDataWeeks[w]['result_exam_1'] = 0
+    if w in [0,1,2,3]:
+        pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex1_excellent.index),['result_exam_1']] = 1
+    elif w in [4,5,6,7]:
+        pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex2_excellent.index),['result_exam_1']] = 1
+    else:
+        pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex3_excellent.index),['result_exam_1']] = 1
+
+fig = plt.figure(figsize=(40,30),dpi=240)
+graph = []
+countGraph = 0
+num_bins = 50
+for w in range(0,12):
+    ax = fig.add_subplot(3,4,w+1)
+    graph.append(ax)
+    graph[countGraph].set_xlabel('Eigenvalues', fontsize = 15)
+    graph[countGraph].set_ylabel('IPR', fontsize = 15)
+    graph[countGraph].set_title('Inverse Participation Ratio week ' + str(w+1), fontsize = 20)
+    graph[countGraph].grid()
+    # graph[countGraph].axhline(y=0, color='k')
+    # graph[countGraph].axvline(x=0, color='k')
+    eigenValueList = pca_result[w].explained_variance_
+    eigenVectorList = pca_result[w].components_
+    IPRlist = libRMT.IPRarray(eigenValueList,eigenVectorList)
+    graph[countGraph].axhline(y=IPRlist['IPR'].mean(), color='k', label='mean value of IPR') 
+    graph[countGraph].plot(IPRlist['eigenvalue'], IPRlist['IPR'], '-', color ='blue', label='IPR')
+    graph[countGraph].legend(loc='upper right')
+    countGraph = countGraph + 1           
+plt.show()
+
+#draw one graph only:
+fig = plt.figure(figsize=(30,20),dpi=120)
+ax = fig.subplots()
+ax.set_xlabel('Eigenvalues', fontsize = 30)
+ax.set_ylabel('IPR', fontsize = 30)
+ax.tick_params(axis='both', which='major', labelsize=25)
+ax.tick_params(axis='both', which='minor', labelsize=25)
+ax.set_title('Inverse Participation Ratio week ' + str(w+1), fontsize = 30)
+ax.grid()
+# graph[countGraph].axhline(y=0, color='k')
+# graph[countGraph].axvline(x=0, color='k')
+eigenValueList = pca_result[11].explained_variance_
+eigenVectorList = pca_result[11].components_
+IPRlist = libRMT.IPRarray(eigenValueList,eigenVectorList)
+ax.axhline(y=IPRlist['IPR'].mean(), color='k', label='mean value of IPR') 
+ax.plot(IPRlist['eigenvalue'], IPRlist['IPR'], '-', color ='blue', label='IPR')
+ax.legend(loc='upper right')
+plt.show()
+
+#outbounce select
+a = libRMT.selectOutboundComponents(pcaDataWeeks[11],pca_result[11].explained_variance_)
+
+#plot loadings
+def plotLoadings(week,pca_result,transitionDataMatrixWeeks, columnsReturn1):
+    loadings = pd.DataFrame(pca_result[week].components_[0:8, :], 
+                            columns=columnsReturn1[week])
+    maxPC = 1.01 * np.max(np.max(np.abs(loadings.loc[0:8, :])))
+    f, axes = plt.subplots(1, 8, figsize=(20, 20), sharey=True)
+    for i, ax in enumerate(axes):
+        pc_loadings = loadings.loc[i, :]
+        colors = ['C0' if l > 0 else 'C1' for l in pc_loadings]
+        ax.axvline(color='#888888')
+        ax.axvline(x=0.1, color='#888888')
+        ax.axvline(x=-0.1, color='#888888')
+        pc_loadings.plot.barh(ax=ax, color=colors)
+        ax.set_xlabel(f'PC{i+1}')
+        ax.set_xlim(-maxPC, maxPC)
+    plt.title('Week '+str(week+1))
+    
+plotLoadings(1,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+plotLoadings(4,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+plotLoadings(11,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+
+pc = 3
+from scipy import stats
+for w in range(0,12):
+    if 'pc'+str(pc) in pcaDataWeeks[w].columns:
+        a1 = pcaDataWeeks[w].loc[pcaDataWeeks[w]['result_exam_1'] == 1,['pc'+str(pc)]]
+        b1 = pcaDataWeeks[w].loc[pcaDataWeeks[w]['result_exam_1'] == 0,['pc' + str(pc)]]
+        t1, p1 = stats.ttest_ind(a1,b1)        
+        print('Week ' + str(w) + ':')
+        print('--PC' + str(pc) + ': ' + 't-value: ' + str(t1) + ' p-value: ' + str(p1))
+        print('-- Excellent: ' + str(a1.mean()[0]))
+        print('-- Weak: ' + str(b1.mean()[0]))
+        
