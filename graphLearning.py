@@ -13,6 +13,8 @@ from plotly.offline import plot
 import plotly.graph_objects as go
 from scipy.stats import f_oneway
 from scipy import stats
+import igraph 
+from igraph import *
 
 def generateTransition(activityCodeList, selfLoop = 1):
     result = []
@@ -148,8 +150,7 @@ def extractActiveStudentsOnActivity(activityDf, activityName, qualtile):
 
 
 
-def visualiseMSTGraph(MSTgraph, excellentList, weakList, reLabelIndex):
-    studentCohorts = {"excellent": excellentList, "weak": weakList}
+def visualiseMSTGraph(MSTgraph, studentCohorts, reLabelIndex):
     MSTgraph.set_node_groups(studentCohorts)
     # MSTgraph.graph = nx.relabel_nodes(MSTgraph.graph, reLabelIndex) #relabel nodes for easy visualisation
     dash_graph = DashGraph(MSTgraph)
@@ -161,7 +162,11 @@ def most_central_edge(G):
     centrality = betweenness(G, weight="weight")
     return max(centrality, key=centrality.get)
 
-def community_dection_graph(MSTgraph, most_valuable_edge, num_comms = 20, mst=True):
+
+#def community_detection_graph_louvain(MSTgraph):
+
+
+def community_dection_graph(MSTgraph, num_comms = 20, mst=True):
     if mst:
         communities_generator = community.girvan_newman(MSTgraph.graph, most_valuable_edge=most_central_edge)
     else:
@@ -170,6 +175,23 @@ def community_dection_graph(MSTgraph, most_valuable_edge, num_comms = 20, mst=Tr
     for communities in itertools.islice(communities_generator, num_comms):
         result.append(tuple(sorted(c) for c in communities))
     return result
+
+def convertGNcommunityToFlattenList(community, studentList):
+    result = {}
+    for s in studentList:
+        for c in range(0, len(community)):
+            if s in community[c]:
+                result[s] = c
+    return result 
+
+def convertFlattenListToCommunity(communityDic):
+    result = {}
+    for c in communityDic:
+        if communityDic[c] not in result:
+            result[communityDic[c]] = []
+        result[communityDic[c]].append(c)
+    return result
+        
 
 def calculateExcellentRateInCommunity(community, excellentList, weakList):
     noOfExcellent = 0
@@ -385,12 +407,12 @@ def extractAssessmentResultOfCommunities(community, assessment, column):
                 # k2, p = stats.normaltest(temp[column])
                 # normTest.append((k2, p))
             groups.append(temp[column])
-        if len(groups) == 2:
-            f,p = f_oneway(groups[0], groups[1])#,  groups[2] )#,  groups[3] ,  groups[4] )#, groups[5],  groups[6] ,  groups[7] )#,  groups[8],  groups[9])
+        if len(groups) == 5:
+            f,p = f_oneway(groups[0], groups[1],  groups[2] ,  groups[3] ,  groups[4] )#, groups[5],  groups[6] ,  groups[7] )#,  groups[8],  groups[9])
                            # ,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
-            L, pL = stats.levene(groups[0], groups[1])#,  groups[2] )#,  groups[3] ,  groups[4] )# , groups[5],  groups[6] ,  groups[7])#,  groups[8],  groups[9])
+            L, pL = stats.levene(groups[0], groups[1],  groups[2] ,  groups[3] ,  groups[4] )# , groups[5],  groups[6] ,  groups[7])#,  groups[8],  groups[9])
                            #,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
-            fk, pk = stats.kruskal(groups[0], groups[1])#,  groups[2] )#,  groups[3] ,  groups[4] )#, groups[5],  groups[6] ,  groups[7])#,  groups[8],  groups[9])
+            fk, pk = stats.kruskal(groups[0], groups[1],  groups[2] ,  groups[3] ,  groups[4] )#, groups[5],  groups[6] ,  groups[7])#,  groups[8],  groups[9])
                            #,groups[10], groups[11],  groups[12],  groups[13],  groups[14] , groups[15],  groups[16],  groups[17],  groups[18],  groups[19])
             result.append([len(cSize), extractedResult, (f,p), (L,pL), (fk,pk), groups])
         else:
@@ -414,17 +436,113 @@ def findTogetherMembers(communitiesList1, communitiesList2, meanScoreGroup1, mea
         result.append(tmp1)
     return pd.DataFrame(result)
     
+def createGraphFromCounter(dfg, mode = 'networkx'):
+    transitionList = list(dfg)
+        #transitionRow as series
+    checkActivityList = []
+    G = nx.DiGraph()
+    for i in transitionList:
+        # if i[0] != i[1]:
+            if i[0] not in checkActivityList:
+                G.add_node(i[0], name=i[0])
+                checkActivityList.append(i[0])
+            if i[1] not in checkActivityList:
+                G.add_node(i[1], name=i[1])
+                checkActivityList.append(i[1])
+            G.add_edge(i[0],i[1], weight = 1)            
+    if mode == 'networkx':
+        return G 
+    else: 
+        return StellarGraph.from_networkx(G)
+    
+
+def findCenterNodeInOneCommunity(graph, community):
+    maxDegree = graph.degree[community[0]]
+    maxNode = community[0]
+    for i in range(1,len(community)):
+        if graph.degree[community[i]] > maxDegree:
+            maxDegree = graph.degree[community[i]]
+            maxNode = community[i]
+    return (maxNode, maxDegree)
+
+def findAllCenterNodeinCommunities(communities, graph):
+    result = []
+    for c in communities:
+        find = findCenterNodeInOneCommunity(graph, c)
+        result.append((c, find[0], find[1], float(find[1])/len(c)))
+    return result
+    
+def getAllWeights(graph):
+    result = {}
+    nodes = graph._node
+    for n in nodes:
+        for m in nodes:
+            if (m,n) not in result:
+                tmp = graph.get_edge_data(n,m,0)
+                if tmp != 0:
+                    result[(n,m)] = tmp['weight']
+    return result
+
+def checkIfSameCommunity(node1, node2, community):
+    for c in community:
+        if (node1 in c) and (node2 in c):
+            return True
+    return False
+
+def superGraphGeneration(clustersOverWeekList = [], weekWeights = [1,1,1,1,1,1,1,1,1,1,1,1], nodeList = []):
+    result = np.zeros((len(nodeList),len(nodeList)))
+    bonusWeight = np.zeros((len(nodeList),len(nodeList)))
+    for i in range(0, len(nodeList)):
+        for j in range(0, len(nodeList)):
+            bonusWeight = 0
+            for k in  range(0, len(clustersOverWeekList)):
+               if checkIfSameCommunity(nodeList[i],nodeList[j],clustersOverWeekList[k]):
+                   result[i][j] = result[i][j] + 1*weekWeights[k] + bonusWeight
+                   bonusWeight = bonusWeight + 1
+               else:
+                   bonusWeight = 0
+    return pd.DataFrame(result, index = nodeList, columns = nodeList)
+                   
+                   
+def checkIfUniqueEdges(graph):
+    edges1 = list(graph.edges(data=True))
+
+    flag = 0
+    for e1 in range(0, len(edges1)):
+        for e2 in range(e1+1, len(edges1)):
+            if (edges1[e1][2]['weight'] != 0) and (edges1[e1][2]['weight'] == edges1[e2][2]['weight']) :
+                print(edges1[e1])
+                print(edges1[e2])
+                flag = 1
+    if flag == 0:
+        print('No duplicate edges')
+    print(len(edges1))
+ 
+    
+#work with iGraph
+def createGraphFromCorrDistance_iGraph(matrix):
+    G = Graph()
+    labels = []
+    for i in range(0, len(matrix.columns)):
+        G.add_vertices(1)
+        G.vs[i]['id'] = i
+        G.vs[i]['label'] = matrix.columns[i]
+    
+    checkCouple = []
+    weights = []
+    for s in range(0, len(matrix.columns)):
+        for i in range(0, len(matrix.index)):
+            if (i,s) not in checkCouple:
+                G.add_edges([(s,i)])
+                weights.append(matrix.loc[matrix.index[i],matrix.columns[s]])
+                checkCouple.append((i,s))
+    
+    G.es['weight'] = weights
+    G.es['label'] = weights
+    return G    
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     
     
     

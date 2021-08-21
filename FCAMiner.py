@@ -7,9 +7,7 @@ import math
 from sklearn.decomposition import PCA
 from sklearn import preprocessing
 from sklearn.preprocessing import StandardScaler
-from pm4py.evaluation.replay_fitness import factory as replay_factory
-from pm4py.objects.conversion.log import factory as conversion_factory
-from pm4py.evaluation.precision import factory as precision_factory
+
 
 def activityDataMatrixContruct(df, ActivityColumn):
     activityList = df[ActivityColumn].unique()
@@ -285,14 +283,15 @@ def PCAactivity(dataset):
     return result1
 
 def PCAactivityValue(dataset):
+
     scaler = StandardScaler()
     result = []
     pca = PCA(n_components=min(len(dataset), len(dataset.columns)))
     x = dataset.values    
-    #x_adjust = x - np.mean(x)    
-    scaler.fit(x)
-    x = scaler.transform(x)
-    pca.fit(x)
+    x_adjust = x - np.mean(x)    
+    # scaler.fit(x)
+    # x = scaler.transform(x)
+    pca.fit(x_adjust)
     transformed_value = pca.fit_transform(x)
     columns = []
     temp = min(len(dataset.columns),len(transformed_value))
@@ -370,10 +369,10 @@ def contrCal(df,numOfPCs):
 
 def PCAcohortToValue(dataset):
     scaler = StandardScaler()
-    result = []
+    # result = []
     pca = PCA(n_components=min(len(dataset), len(dataset.columns)))
     x = dataset.values    
-    #x_adjust = x - np.mean(x)    
+    # x = x - np.mean(x,axis=0)    
     scaler.fit(x)
     x = scaler.transform(x)
     pca.fit(x)

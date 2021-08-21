@@ -7,6 +7,8 @@ import mlfinlab as ml
 from node2vec import Node2Vec
 from sklearn.manifold import TSNE
 import networkx as nx
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 
@@ -41,7 +43,7 @@ def IPRarray(eigenvalueList, eigenvectorList):
         result.append([eVal,IPRcal(eVec)])
     return pd.DataFrame(result, columns=['eigenvalue','IPR'])
 
-def selectOutboundComponents(datasetPC, eigenvalueList):
+def selectOutboundComponents(datasetPC, eigenvalueList, mode='upper_lower'):
     sampleLength = len(datasetPC)
     featuresLength = len(datasetPC.columns)
     
@@ -53,8 +55,12 @@ def selectOutboundComponents(datasetPC, eigenvalueList):
     pcList = ['pc' + str(i) for i in range(1,26)]
     columnList = []
     for eVal, pc in zip(eigenvalueList, pcList):
-        if eVal >= 1: #lambda_max:
-            columnList.append(pc)
+        if mode == 'upper_lower':
+            if (eVal >= lambda_max) or (eVal <= lambda_min):
+                columnList.append(pc)
+        elif mode == 'upper':
+            if (eVal >= lambda_max):
+                columnList.append(pc)         
             
     return datasetPC.loc[:,columnList]
 
@@ -187,12 +193,20 @@ def visualiseGraph(rowData, activityCodeList, fileName, title, undirect_conversi
     
 
 def regressionToCleanEigenvectorEffect(originalData, PCAdata, eigenvector_to_clean):
+    return
     if len(originalData) != len(PCAdata):
         print('Sample length should be equal!!!')
         return
-    selectedComponent = 'pc' + str(eigenvector_to_clean)
-    selectedComponentData = PCAdata.loc[:,[selectedComponent]]
+    selectedComponents = []
+    for eigv in eigenvector_to_clean:
+        selectedComponents.append('pc' + str(eigv))
+    selectedComponentData = PCAdata.loc[:,selectedComponents]
     cleanedData = pd.DataFrame(columns = originalData.columns, index=originalData.index)
+    
+    scaler = StandardScaler()
+    scaler.fit(originalData)
+    originalData = pd.DataFrame(scaler.transform(originalData),columns = originalData.columns, index=originalData.index)
+    
     for c in originalData.columns:
         x = selectedComponentData
         y = originalData[c]
@@ -204,10 +218,42 @@ def regressionToCleanEigenvectorEffect(originalData, PCAdata, eigenvector_to_cle
         epsilon = []
         for s in originalData.index:
             # epsilonOfstudentS = originalData.loc[originalData.index == s,[c]].values[0][0] - alpha - beta*selectedComponentData.loc[selectedComponentData.index == s][selectedComponent][0]
-            epsilonOfstudentS = originalData.loc[originalData.index == s,[c]].values[0][0] - beta*selectedComponentData.loc[selectedComponentData.index == s][selectedComponent][0] - alpha
+            data_to_remove = 0
+            for selectedComponent in selectedComponents:
+                data_to_remove = data_to_remove + beta*selectedComponentData.loc[selectedComponentData.index == s][selectedComponent][0]
+            epsilonOfstudentS = originalData.loc[originalData.index == s,[c]].values[0][0] - data_to_remove
             epsilon.append(epsilonOfstudentS)
         cleanedData[c] = epsilon
     return cleanedData
+
+def cleanEigenvectorEffect(originalData, PCAdata, eigenvector_to_clean, pca_components, alpha, beta):
+    if len(originalData) != len(PCAdata):
+        print('Sample length should be equal!!!')
+        return
+
+    scaler = StandardScaler()
+    scaler.fit(originalData)
+    cleanedData = pd.DataFrame(scaler.transform(originalData),columns = originalData.columns, index=originalData.index)
+    
+    
+    
+    removedPCscores = pd.DataFrame(0,columns = cleanedData.columns, index = cleanedData.index)
+    for col, component_features in zip(cleanedData.columns, pca_components.T):
+        for pc in range(1,len(component_features)+1):
+            if ('pc' + str(pc)) in eigenvector_to_clean:
+                if ('pc' + str(pc)) == 'pc1':
+                    removedPCscores[col] = removedPCscores[col] + beta*PCAdata['pc' + str(pc)]*component_features[pc-1]
+                else:
+                    removedPCscores[col] = removedPCscores[col] + alpha*PCAdata['pc' + str(pc)]*component_features[pc-1]
+        
+    
+    for c in cleanedData.columns:
+        cleanedData[c] = cleanedData[c] - removedPCscores[c]
+    
+    return cleanedData
+
+    
+    
 
 def getPCA(matrix):
     # Get eVal,eVec from a Hermitian matrix
@@ -249,9 +295,74 @@ def cleanDataWeek(normalisedDataWeek):
     # The bandwidth of the KDE kernel
     kde_bwidth = 0.25
     # Finding the Вe-noised Сovariance matrix
-    denoised_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth)
-    denoised_matrix_byLib = pd.DataFrame(denoised_matrix_byLib, index=matrix.index, columns=matrix.columns)
+    denoised_matrix_byLib = risk_estimators.denoise_covariance(normalisedDataWeek, tn_relation, kde_bwidth)
+    denoised_matrix_byLib = pd.DataFrame(denoised_matrix_byLib, index=normalisedDataWeek.index, columns=normalisedDataWeek.columns)
     
-    detoned_matrix_byLib = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth, detone=True)
-    detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
+    detoned_matrix_byLib = risk_estimators.denoise_covariance(normalisedDataWeek, tn_relation, kde_bwidth, detone=True)
+    detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=normalisedDataWeek.index, columns=normalisedDataWeek.columns)
 
+def biplot(score, coeff , y, columns, col1, col2, scaleLoadings=25, classifierCol = 'result_exam_1', title=['Failed students','Pass students']):
+    '''
+    Author: Serafeim Loukas, serafeim.loukas@epfl.ch
+    Inputs:
+       score: the projected data
+       coeff: the eigenvectors (PCs)
+       y: the class labels
+   '''
+    xs = score.loc[:,[col1]] # projection on PC1
+    ys = score.loc[:,[col2]] # projection on PC2
+
+    n = coeff.shape[0] # number of variables
+    plt.figure(figsize=(10,8), dpi=100)
+    classes = np.unique(y)
+    colors = ['g','r','y','blue','black','orange']
+    markers=['o','^','x','d','p','*']
+    for s,l in enumerate(classes):
+        label = title[l]
+        plt.scatter(score.loc[score[classifierCol] == l,[col1]],
+                    score.loc[score[classifierCol] == l,[col2]], 
+                    c = colors[s], marker=markers[s], label=label) # color based on group
+
+    plt.xlabel(col1, size=14)
+    plt.ylabel(col2, size=14)
+    limx= int(xs.max()) + 1
+    limy= int(ys.max()) + 1
+    plt.xlim([-limx,limx])
+    plt.ylim([-limy,limy])
+    plt.grid()
+    plt.legend()
+    plt.tick_params(axis='both', which='both', labelsize=14)
+    
+    # plt.figure(figsize=(10,8), dpi=100)
+    for i in range(n):
+        #plot as arrows the variable scores (each variable has a score for PC1 and one for PC2)
+        # plt.scatter(coeff[i,0]*25, coeff[i,1]*25, color = 'blue', marker='x')
+        plt.arrow(0, 0, coeff[i,0]*scaleLoadings, coeff[i,1]*scaleLoadings, color = 'blue', alpha = 0.9,linestyle = '-',linewidth = 0.2, overhang=0.05)
+        plt.text(coeff[i,0]*scaleLoadings* 1.05, coeff[i,1] *scaleLoadings* 1.05, str(columns[i]), color = 'k', ha = 'center', va = 'center',fontsize=8)
+
+    # plt.xlabel(col1, size=14)
+    # plt.ylabel(col2, size=14)
+    # limx= 0.5
+    # limy= 0.5
+    # plt.xlim([-limx,limx])
+    # plt.ylim([-limy,limy])
+    # plt.grid()
+    # plt.tick_params(axis='both', which='both', labelsize=14)
+
+
+#plot loadings
+def plotLoadings(week,pca_result,transitionDataMatrixWeeks, columnsReturn1):
+    loadings = pd.DataFrame(pca_result[week].components_[0:8, :], 
+                            columns=columnsReturn1[week])
+    maxPC = 1.01 * np.max(np.max(np.abs(loadings.loc[0:8, :])))
+    f, axes = plt.subplots(1, 8, figsize=(20, 20), sharey=True)
+    for i, ax in enumerate(axes):
+        pc_loadings = loadings.loc[i, :]
+        colors = ['C0' if l > 0 else 'C1' for l in pc_loadings]
+        ax.axvline(color='#888888')
+        ax.axvline(x=0.1, color='#888888')
+        ax.axvline(x=-0.1, color='#888888')
+        pc_loadings.plot.barh(ax=ax, color=colors)
+        ax.set_xlabel(f'PC{i+1}')
+        ax.set_xlim(-maxPC, maxPC)
+    plt.title('Week '+str(week+1))

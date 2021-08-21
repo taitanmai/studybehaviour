@@ -1,34 +1,16 @@
-
 import pandas as pd
 import numpy as np
-import scipy as sp
 from scipy import stats
-from scipy.stats import ks_2samp
-from scipy.stats.stats import pearsonr
-import math
 from sklearn.decomposition import PCA
-from sklearn import preprocessing
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn import metrics
 import matplotlib.pyplot as plt
 import dataProcessing
 import FCAMiner
 # import pyRMT
 import libRMT
 import graphLearning
-import seaborn as sns
-from mpl_toolkits.mplot3d import axes3d, Axes3D
-from scipy.stats import kurtosis
 import warnings
-import time
 from node2vec import Node2Vec
-from sklearn.manifold import TSNE
-import networkx as nx
 import PredictionResult
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 warnings.filterwarnings("ignore")
 # sns.set()
 # sns.set_style("whitegrid", {"axes.facecolor": ".9"})
@@ -37,11 +19,6 @@ os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 
 import mlfinlab as ml
 from mlfinlab.networks.mst import MST
-from mlfinlab.networks.dash_graph import DashGraph
-from networkx.algorithms import community
-import itertools
-from plotly.offline import plot
-import plotly.graph_objects as go
 basePath = 'D:\\Dataset\\PhD\\'
 
 
@@ -338,7 +315,7 @@ activityDataMatrixWeeks_20182019_normalised = []
 for w in range(0,12):
     activityDataMatrixWeeks_20182019_normalised.append(dataProcessing.normaliseData(activityDataMatrixWeeks_20182019[w], 'normalised'))
 
-activityDataMatrixWeeks_20182019_normalised[11].hist(bins=50)
+activityDataMatrixWeeks_20182019_standardised[11].hist(bins=50)
 
 #transpose activity data matrix
 activityDataMatrixWeeks_20182019_transposed = []
@@ -689,7 +666,7 @@ for w in range(0,12):
 plt.show()
 
 
-#--------------- PREDCTION --------------------------------------------------#
+#--------------- PREDCTION for node embeddings --------------------------------------------------#
 #---------------------------------------------------------------------------------#
 
 #data preparation for prediction
@@ -739,6 +716,319 @@ title_transition = 'Graph embeddings - Node2Vec - 2018 and 2019 by weeks data - 
 algorithmList = []
 # algorithmList = []
 PredictionResult.algorithmComparisonGraph('recall',predictionReport_transition,algorithmList, title_transition)
+
+#--------------- PREDCTION with activity data--------------------------------------------------#
+#---------------------------------------------------------------------------------#
+
+
+import FCAMiner
+pca_result = []
+pcaDataWeeks = []
+columnsReturn2 = []
+for w in range(0,12):
+    # tempData = transitionDataMatrixWeeks[w].loc[:,columns]
+    tempData = activityDataMatrixWeeks_20182019[w]
+    # tempData = tempData.merge(prediction_transition[w+1]['data']['successPassedRate'], left_on = tempData.index, right_on=prediction_transition[w+1]['data']['successPassedRate'].index).set_index('key_0')
+    temp = FCAMiner.PCAcohortToValue(tempData)
+    temp1 = temp[1]
+    pcaResult = temp[0]
+    # temp1 = temp1.merge(prediction_transition[w+1]['data']['result_exam_1'], left_on = temp1.index, right_on=prediction_transition[w+1]['data']['result_exam_1'].index).set_index('key_0')
+    pcaDataWeeks.append(temp1)
+    pca_result.append(pcaResult)
+    columnsReturn2.append(temp[2])    
+
+#filtered PCA data
+dataForPrediction_outbound = []
+for week in range(0,12):
+    dataForPrediction_outbound.append(libRMT.selectOutboundComponents(pcaDataWeeks[week],pca_result[week].explained_variance_))
+
+dataForPrediction_outbound_upper = []
+for week in range(0,12):
+    dataForPrediction_outbound_upper.append(libRMT.selectOutboundComponents(pcaDataWeeks[week],pca_result[week].explained_variance_,'upper'))
+
+
+#clean first eigen effect data with regression
+# dataForPrediction = []    
+# for week in range(0,12):
+#     # outBoundComponents = []
+#     # for c in dataForPrediction_outbound[week].columns:
+#     #     outBoundComponents.append(int(c[-1]))
+    
+#     componentToClean = [1]
+#     # for c in range(1,len(filteredData[week].columns)+1):
+#     #     if c not in outBoundComponents:
+#     #         componentToClean.append(c)
+#     dataForPrediction.append(libRMT.regressionToCleanEigenvectorEffect(filteredData[week], pcaDataWeeks[week],componentToClean)) 
+
+#clean first eigen effect data (not regression, just reconstruct X_hat from outbound components)
+import libRMT
+dataDenoiseDetrend_partly = []    
+for week in range(0,12):
+    outBoundComponents = dataForPrediction_outbound[week].columns
+    componentToClean = ['pc1']
+    for c in pcaDataWeeks[week].columns:
+        if c not in outBoundComponents:
+            componentToClean.append(c)
+    dataDenoiseDetrend_partly.append(libRMT.cleanEigenvectorEffect(activityDataMatrixWeeks_20182019[week],pcaDataWeeks[week], 
+                                                           componentToClean, pca_result[week].components_,0.5,0.8)) 
+
+dataDenoiseDetrend_fully = []    
+for week in range(0,12):
+    outBoundComponents = dataForPrediction_outbound[week].columns
+    componentToClean = ['pc1']
+    for c in pcaDataWeeks[week].columns:
+        if c not in outBoundComponents:
+            componentToClean.append(c)
+    dataDenoiseDetrend_fully.append(libRMT.cleanEigenvectorEffect(activityDataMatrixWeeks_20182019[week],pcaDataWeeks[week], 
+                                                           componentToClean, pca_result[week].components_,1,1)) 
+
+pca_result_fully_cleanData = []
+pcaDataWeeks_fully_cleanData = []
+columnsReturn2_fully_cleanData = []
+for w in range(0,12):
+    # tempData = transitionDataMatrixWeeks[w].loc[:,columns]
+    tempData = dataDenoiseDetrend_fully[w]
+    # tempData = tempData.merge(prediction_transition[w+1]['data']['successPassedRate'], left_on = tempData.index, right_on=prediction_transition[w+1]['data']['successPassedRate'].index).set_index('key_0')
+    temp = FCAMiner.PCAcohortToValue(tempData)
+    temp1 = temp[1]
+    pcaResult = temp[0]
+    # temp1 = temp1.merge(prediction_transition[w+1]['data']['result_exam_1'], left_on = temp1.index, right_on=prediction_transition[w+1]['data']['result_exam_1'].index).set_index('key_0')
+    pcaDataWeeks_fully_cleanData.append(temp1)
+    pca_result_fully_cleanData.append(pcaResult)
+    columnsReturn2_fully_cleanData.append(temp[2])   
+
+dataForPrediction_outbound_upper_on_fully_cleanData = []
+for week in range(0,12):
+    dataForPrediction_outbound_upper_on_fully_cleanData.append(libRMT.selectOutboundComponents(pcaDataWeeks_fully_cleanData[week],pca_result_fully_cleanData[week].explained_variance_,'upper'))
+
+    
+
+dataDenoiseDetrend_partly_upper = []    
+for week in range(0,12):
+    outBoundComponents = dataForPrediction_outbound[week].columns
+    componentToClean = ['pc1']
+    for c in pcaDataWeeks[week].columns:
+        if c not in outBoundComponents:
+            componentToClean.append(c)
+    dataDenoiseDetrend_partly_upper.append(libRMT.cleanEigenvectorEffect(activityDataMatrixWeeks_20182019[week],pcaDataWeeks[week], 
+                                                           componentToClean, pca_result[week].components_,0.5,0.8)) 
+
+dataDenoiseDetrend_fully_upper = []    
+for week in range(0,12):
+    outBoundComponents = dataForPrediction_outbound[week].columns
+    componentToClean = ['pc1']
+    for c in pcaDataWeeks[week].columns:
+        if c not in outBoundComponents:
+            componentToClean.append(c)
+    dataDenoiseDetrend_fully_upper.append(libRMT.cleanEigenvectorEffect(activityDataMatrixWeeks_20182019[week],pcaDataWeeks[week], 
+                                                           componentToClean, pca_result[week].components_,1,1))  
+    
+
+denoiseData = []    
+for week in range(0,12):
+    outBoundComponents = dataForPrediction_outbound[week].columns
+    # componentToClean = ['pc1']
+    for c in pcaDataWeeks[week].columns:
+        if c not in outBoundComponents:
+            componentToClean.append(c)
+    denoiseData.append(libRMT.cleanEigenvectorEffect(activityDataMatrixWeeks_20182019[week],pcaDataWeeks[week], 
+                                                           componentToClean, pca_result[week].components_,1,0)) 
+
+detrendData = []    
+for week in range(0,12):
+    outBoundComponents = dataForPrediction_outbound[week].columns
+    componentToClean = ['pc1']
+    for c in pcaDataWeeks[week].columns:
+        if c not in outBoundComponents:
+            componentToClean.append(c)
+    detrendData.append(libRMT.cleanEigenvectorEffect(activityDataMatrixWeeks_20182019[week],pcaDataWeeks[week],
+                                                     componentToClean, pca_result[week].components_,0,1)) 
+
+#prediction
+import PredictionResult
+
+
+def prediction_implementation(data):
+    prediction_transition = []
+    for week in range(0,12):
+        print('Predicting for Week ...' + str(week))
+        if week in [0,1,2,3]:
+            excellent = ex1_excellent_20182019.index
+            weak = ex1_weak_20182019.index
+        elif week in [4,5,6,7]:
+            excellent = ex2_excellent_20182019.index
+            weak = ex2_weak_20182019.index        
+        else:
+            excellent = ex3_excellent_20182019.index
+            weak = ex3_weak_20182019.index  
+        cummulativeResult = cummulativeExerciseWeeks_20182019[week].copy()
+        predictionResult = PredictionResult.predict_proba_all_algorithms_data_ready(data[week], excellent, weak, cummulativeResult)
+        prediction_transition.append(predictionResult)
+    
+    reportArray_transition = []
+    for w in range(0,12):
+        for algorithm in prediction_transition[w]:
+            if algorithm != 'data':
+                reportArray_transition.append([w,algorithm, 
+                                      prediction_transition[w][algorithm][0]['accuracy_score'][0],
+                                      prediction_transition[w][algorithm][0]['f1_score'][0],
+                                      prediction_transition[w][algorithm][0]['precision_score'][0],
+                                      prediction_transition[w][algorithm][0]['recall_score'][0],
+                                      prediction_transition[w][algorithm][0]['roc_auc'],
+                                      prediction_transition[w][algorithm][4].mean(),
+                                      prediction_transition[w][algorithm][7].mean(),
+                                      prediction_transition[w][algorithm][8].mean(),
+                                      prediction_transition[w][algorithm][8].mean()
+                                      ])
+            
+    predictionReport_transition = pd.DataFrame(reportArray_transition,columns=['week','algorithm','accuraccy',
+                                                         'f1_score','precision','recall',
+                                                         'roc_auc','cv_mean_auc','cv_mean_f1','cv_mean_recall', 'cv_mean_accuracy']) 
+    return prediction_transition, predictionReport_transition
+
+predictionDetail_original, predictionReport_original = prediction_implementation(activityDataMatrixWeeks_20182019)
+predictionDetail_pca, predictionReport_pca = prediction_implementation(pcaDataWeeks)
+predictionDetail_RMTfilter, predictionReport_RMTfilter = prediction_implementation(dataForPrediction_outbound)
+predictionDetail_partlyDenoiseDetrend, predictionReport_partlyDenoiseDetrend = prediction_implementation(dataDenoiseDetrend_partly)
+# predictionDetail_denoise, predictionReport_denoise = prediction_implementation(denoiseData)
+# predictionDetail_detrend, predictionReport_detrend = prediction_implementation(detrendData)
+predictionDetail_fullyDenoiseDetrend, predictionReport_fullyDenoiseDetrend = prediction_implementation(dataDenoiseDetrend_fully)
+predictionDetail_partlyDenoiseDetrend_upper, predictionReport_partlyDenoiseDetrend_upper = prediction_implementation(dataDenoiseDetrend_partly_upper)
+predictionDetail_fullyDenoiseDetrend_upper, predictionReport_fullyDenoiseDetrend_upper = prediction_implementation(dataDenoiseDetrend_fully_upper)
+
+
+predictionDetail_pca_onFullyClean, predictionReport_pca_onFullyClean = prediction_implementation(pcaDataWeeks_fully_cleanData)
+predictionDetail_RMTfilter_onFullyClean, predictionReport_RMTfilter_onFullyClean = prediction_implementation(dataForPrediction_outbound_upper_on_fully_cleanData)
+
+
+predictionReport_original['scenario'] = 'Original'
+predictionReport_pca['scenario'] = 'PCA'
+predictionReport_RMTfilter['scenario'] = 'RMT filter'
+predictionReport_partlyDenoiseDetrend['scenario'] = 'Denoise_detrend_partly'
+# predictionReport_denoise['scenario'] = 'Denoise'
+# predictionReport_detrend['scenario'] = 'Detrend'
+predictionReport_fullyDenoiseDetrend['scenario'] = 'Denoise_detrend_fully'
+predictionReport_partlyDenoiseDetrend_upper['scenario'] = 'Denoise_detrend_partly_upper'
+predictionReport_fullyDenoiseDetrend_upper['scenario'] = 'Denoise_detrend_fully_upper'
+predictionReport_pca_onFullyClean['scenario'] = 'PCA_onFullyClean'
+predictionReport_RMTfilter_onFullyClean['scenario'] = 'RMTfilter_onFullyClean'
+
+predictionReport = pd.concat([predictionReport_original,
+                              predictionReport_pca,
+                              predictionReport_RMTfilter,
+                              predictionReport_partlyDenoiseDetrend,
+                               # predictionReport_denoise, 
+                               # predictionReport_detrend, 
+                              predictionReport_fullyDenoiseDetrend,
+                              # predictionReport_partlyDenoiseDetrend_upper,
+                              # predictionReport_fullyDenoiseDetrend_upper,
+                              predictionReport_pca_onFullyClean,
+                              predictionReport_RMTfilter_onFullyClean                              
+                              ])
+
+predictionReport.to_csv('PredictionReportCA116_1.csv')
+title_transition = ''#'Outbound (both > lambda_max and < lambda_min) eigenvalues only by RMT'
+algorithmList = ['Gradient Boosting','KNN','Logistic Regression','SVM','XGBoost']#['KNN','Logistic Regression','Random Forest','SVM','XGBoost']
+# algorithmList = []
+
+predictionReport_fullyDenoiseDetrend = predictionReport.loc[predictionReport['scenario'] == 'Denoise_detrend_fully']
+predictionReport_partlyDenoiseDetrend = predictionReport.loc[predictionReport['scenario'] == 'Denoise_detrend_partly']
+
+PredictionResult.algorithmComparisonGraph('cv_mean_auc',predictionReport_fullyDenoiseDetrend,algorithmList, title_transition, 'cross-validation roc_auc mean')
+
+PredictionResult.algorithmComparisonGraph('accuraccy',predictionReport_RMTfilter_onFullyClean,algorithmList, title_transition)
+PredictionResult.algorithmComparisonGraph('cv_mean_auc',predictionReport_RMTfilter_onFullyClean,algorithmList, title_transition)
+
+#statistic test prediction performance between data processing strategise
+x1 = predictionReport_detrend.loc[predictionReport_detrend['algorithm'] == 'XGBoost']['cv mean']
+x2 = predictionReport_original[predictionReport_original['algorithm'] == 'XGBoost']['cv mean']
+
+x1.hist(bins=10)
+x2.hist(bins=10)
+
+x1.mean()
+x2.mean()
+
+stats.mannwhitneyu(x1,x2)
+stats.ttest_ind(x1,x2)
+
+import matplotlib.pyplot as plt
+def plotPredictionReport(dataToPlot, title, metricName): #input as an dictonary where each element is a label -> series
+
+    plt.figure(figsize=(20,15))
+    colorList = ['b','g', 'r', 'c', 'm', 'y', 'k', 'purple']
+    for dataLabel,color in zip(dataToPlot,colorList):
+        data = dataToPlot[dataLabel] 
+        plt.plot(range(1,len(data)+1), data, 'o-', color=color, label=dataLabel, markersize=10)
+
+        # plt.plot(predictionReport['week'], predictionReport['recall'],
+        #           'o-', color='orange', label='recall_score', markersize=10)
+    plt.title(title,fontsize=20)  
+    plt.xlim(0, 13)
+    plt.ylim(0.4, 0.85)
+    plt.xticks(np.arange(0, 13), fontsize=20)
+    plt.yticks(np.arange(0.4, 1, 0.1), fontsize=20)
+    plt.xlabel("Week", fontsize=20)
+    plt.ylabel(metricName + ' Scores', fontsize=20)
+    plt.grid()
+    plt.legend(loc="lower right", fontsize=18)
+    plt.show()
+
+metricName = 'roc_auc'
+algorithm = 'XGBoost'
+dataToPlot = {
+              'Original' : predictionReport_original.loc[predictionReport_original['algorithm'] == algorithm][metricName],             
+                'PCA' : predictionReport_pca.loc[predictionReport_pca['algorithm'] == algorithm][metricName],
+                'RMT filter' : predictionReport_RMTfilter.loc[predictionReport_RMTfilter['algorithm'] == algorithm][metricName],
+                 'Denoise_detrend_partly' : predictionReport_partlyDenoiseDetrend.loc[predictionReport_partlyDenoiseDetrend['algorithm'] == algorithm][metricName],
+              # 'Denoise' : predictionReport_denoise.loc[predictionReport_denoise['algorithm'] == algorithm][metricName],
+              # 'Detrend' : predictionReport_detrend.loc[predictionReport_detrend['algorithm'] == algorithm][metricName],
+              'Denoise_detrend_fully': predictionReport_fullyDenoiseDetrend.loc[predictionReport_fullyDenoiseDetrend['algorithm'] == algorithm][metricName],
+               # 'Denoise_detrend_partly_upper': predictionReport_partlyDenoiseDetrend_upper.loc[predictionReport_partlyDenoiseDetrend_upper['algorithm'] == algorithm][metricName],
+                # 'Denoise_detrend_fully_upper': predictionReport_fullyDenoiseDetrend_upper.loc[predictionReport_fullyDenoiseDetrend_upper['algorithm'] == algorithm][metricName]
+               'PCA_onFullyClean': predictionReport_pca_onFullyClean.loc[predictionReport_pca_onFullyClean['algorithm'] == algorithm][metricName],
+               'RMTfilter_onFullyClean': predictionReport_RMTfilter_onFullyClean.loc[predictionReport_RMTfilter_onFullyClean['algorithm'] == algorithm][metricName]
+              } 
+
+plotPredictionReport(dataToPlot, 'Predicting performance among data processing strategies - ' + algorithm ,metricName)   
+
+def statsTest(x1, x2):
+    return
+    
+    
+#plot barchar comparison
+predictionReport = pd.read_csv('PredictionReportCA116_1.csv', index_col=0)
+
+algorithm = ['XGBoost','SVM', 'KNN','Logistic Regression', 'Gradient Boosting']
+metricName = 'roc_auc'
+dataToBarchart = predictionReport.loc[(predictionReport['week'] == 11) & (predictionReport['algorithm'].isin(algorithm)),['algorithm','scenario',metricName]]
+dataToBarchart = dataToBarchart.set_index(['algorithm','scenario'])[metricName]
+dataToBarchart = dataToBarchart.unstack(level=-1)
+dataToBarchart = dataToBarchart.loc[:,['Original','PCA','RMT filter','Denoise_detrend_fully','Denoise_detrend_partly']]
+
+plt.figure(figsize=(15,10))
+plt.ylim(0.5,0.9)
+colorList = ['b','g', 'r', 'c', 'm'] #, 'y', 'k', 'purple']
+markerList = ['o','v','s','*','D']
+label = {'Original' : 'Original data',
+         'PCA' : 'PCA data',
+         'RMT filter' : 'PCA data with top principal components',
+         'Denoise_detrend_fully' : 'Fully cleaned data',
+         'Denoise_detrend_partly' : 'Partly cleaned data'
+         }
+for c, color, marker in zip(dataToBarchart.columns, colorList, markerList):
+    plt.plot(dataToBarchart.index, dataToBarchart[c], color=color, marker=marker, markersize=10, label=label[c])
+plt.title('', fontsize=14)
+plt.rc('xtick', labelsize=18)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=18)    # fontsize of the tick labels
+# plt.xlabel('Prediction Models', fontsize=20)
+plt.ylabel('ROC AUC', fontsize=20)
+plt.legend(loc="lower right", prop={'size': 16})
+plt.grid(True)
+plt.show()
+
+dataToBarchart.plot.line(figsize=(15,10), ylim=(0.5,1), title=metricName, sort_columns=True, grid=True)
+
 
 #----------------- Train 2018 - Predict 2019 -----------------------------------------------
 #-----------------------------------------------------------------------------------------------#

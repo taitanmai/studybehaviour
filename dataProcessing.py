@@ -80,7 +80,7 @@ def get_eventlogs_by_condition(basePath, module=[],user=[],date=[]):
     return logs
 
 def get_event_log_by_file_2019(basePath, m,u,d):
-    corePath = basePath + '2020-06-29-einstein/activity/'
+    corePath = basePath + '2020-06-29-einstein/activity/' #'2021-03-03-einstein-anon/activity/'
     path = corePath + m + '/'
     path += u + '/'
     path += d 
@@ -121,7 +121,7 @@ def get_event_log_by_file_2019(basePath, m,u,d):
     
     
 def get_eventlogs_by_condition_2019(basePath, module=[],user=[],date=[]):
-    corePath = path =  basePath + '2020-06-29-einstein/activity/'
+    corePath = basePath + '2020-06-29-einstein/activity/' #'2021-03-03-einstein-anon/activity/'
     if len(module) == 0:
         path = corePath
         module = os.listdir(path)
@@ -193,7 +193,7 @@ def getUploadReportContent(m,u,d,file, basePath):
         content1 = f.read()
         j = json.loads(content1)
         f.close()
-        columns = ["date","module","user","task","language","correct","failed","passed","version","timeout","extension","ip"]
+        columns = ["date","module","user","task","language","correct","failed","passed","version","timeout","extension","ip","upload"]
         content = []
         for index, c in enumerate(columns,start=0):
             content.append(j[c])        
@@ -229,7 +229,7 @@ def extractUploadsData(basePath, module = [],user=[],date=[]):
                         date.append(d)    
     date = list(dict.fromkeys(date))
     
-    columns = ["date","module","user","task","language","correct","failed","passed","version","timeout","extension","ip"]
+    columns = ["date","module","user","task","language","correct","failed","passed","version","timeout","extension","ip","upload"]
     
     resultArray = []
     for m in module:
@@ -239,7 +239,7 @@ def extractUploadsData(basePath, module = [],user=[],date=[]):
                 if os.path.exists(path):
                     files = os.listdir(path)
                     for f in files:                        
-                        if re.search(".report.(20|19|18)\d{2}-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9].json$",f):
+                        if re.search(".report.(21|20|19|18)\d{2}-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9].json$",f):
                             print(f)
                             temp = getUploadReportContent(m,u,d,f,basePath)
                             resultArray.append(temp)
@@ -250,27 +250,31 @@ def extractUploadsData(basePath, module = [],user=[],date=[]):
 
 #extract upload for 2019 data
 def getUploadReportContent_2019(basePath, m,u,d,file):
-    corePath = basePath + '2020-06-29-einstein/uploads/' #'einstein-anon/anon/uploads/'
+    corePath = basePath +  '2020-06-29-einstein/uploads/' #'einstein-anon/anon/uploads/' #'2021-03-03-einstein-anon/uploads/'
     path = corePath + d + '/'
     path += m + '/'
     path += u + '/'
     path += file
-    if os.path.exists(path):
+    if os.path.exists(path):        
         f = open(path,'r',encoding="utf8",errors='ignore')
         content1 = f.read()
-        j = json.loads(content1)
-        f.close()
-        columns = ["date","module","user","task","language","correct","failed","passed","version","timeout","extension","ip"]
-        content = []
-        for index, c in enumerate(columns,start=0):
-            content.append(j[c])  
-        print(path)
-        return content
+        try:
+            j = json.loads(content1)
+            f.close()
+            columns = ["date","module","user","task","language","correct","failed","passed","version","timeout","extension","ip", "upload"]
+            content = []
+            for index, c in enumerate(columns,start=0):
+                content.append(j[c])  
+            print(path)
+            return content
+        except:
+            print('File error: ' + path)
+            return []
     else:
         return []
 
 def extractUploadsData_2019(basePath, module = [],user=[],date=[]):
-    corePath = basePath + '2020-06-29-einstein/uploads/' #'einstein-anon/anon/uploads/'                    
+    corePath = basePath +  '2020-06-29-einstein/uploads/' #'einstein-anon/anon/uploads/'     #'2021-03-03-einstein-anon/uploads/'               
 
     if len(date) == 0:
         path = corePath
@@ -297,7 +301,7 @@ def extractUploadsData_2019(basePath, module = [],user=[],date=[]):
                         user.append(u)    
     user = list(dict.fromkeys(user))
     
-    columns = ["date","module","user","task","language","correct","failed","passed","version","timeout","extension","ip"]
+    columns = ["date","module","user","task","language","correct","failed","passed","version","timeout","extension","ip", "upload"]
     
     resultArray = []
     for d in date:
@@ -307,10 +311,11 @@ def extractUploadsData_2019(basePath, module = [],user=[],date=[]):
                 if os.path.exists(path):
                     files = os.listdir(path)
                     for f in files:                        
-                        if re.search(".report.(20|19|18)\d{2}-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9].json$",f):
-                            # print(f)
+                        if re.search(".report.(|20|19|18)\d{2}-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9].json$",f):
+                            print(f)
                             temp = getUploadReportContent_2019(basePath, m,u,d,f)
-                            resultArray.append(temp)
+                            if len(temp) > 0:
+                                resultArray.append(temp)
     # print(resultArray)
     result = pd.DataFrame(resultArray,columns=columns)
     result['date'] = pd.to_datetime(result.date)
@@ -413,20 +418,21 @@ def addConceptPageToLog(dfEventLog):
     return dfEventLog
 
 # basePath = 'D:\\Dataset\\PhD\\'  
-# result = extractUploadsData_2019(basePath, module = ['ca177'])   
-# result.to_csv(basePath + "ca177_uploads_2019.csv",index=False)    
+# result = extractUploadsData(basePath, module = ['ca116'])   
+
+# result.to_csv(basePath + "ca116_uploads.csv",index=False)    
 
 
-# module = ['ca277']
+# module = ['ca167']
 # user = [] #get all users
 # date = [] #get all dates
 
 
 # log1 = get_eventlogs_by_condition_2019(basePath, module,user,date=date)
-
-# # # # # a = log1.loc[(log1['concept:instance'].str.contains('is-lab-exam') | log1['concept:instance'].str.contains('upload')) & (log1['org:resource'] == 'u-114b810c95a5ebd746ed7b4ad73634929caa83d8')]
-# # # # # u-114b810c95a5ebd746ed7b4ad73634929caa83d8
-# log1.to_csv(basePath + "ca277_eventLog_nonfixed_2019.csv",index=False) 
+# 
+# # # # # # a = log1.loc[(log1['concept:instance'].str.contains('is-lab-exam') | log1['concept:instance'].str.contains('upload')) & (log1['org:resource'] == 'u-114b810c95a5ebd746ed7b4ad73634929caa83d8')]
+# # # # # # u-114b810c95a5ebd746ed7b4ad73634929caa83d8
+# log1.to_csv(basePath + "ca167_eventLog_nonfixed_2019.csv",index=False) 
 
 
 
@@ -466,5 +472,13 @@ def normaliseData(data, transformedType='standardised'):
 def reLabelStudentId(studentList):
     result = {}
     for i in range(0, len(studentList)):
-        result[studentList[i]] = i
+        result[studentList[i]] = 's' + str(i)
+    return result
+
+def reverstStudentIdFromReLabel(studentReLabelList, reLabelIndex):
+    result = []
+    for s in studentReLabelList:
+        for r in reLabelIndex:
+            if reLabelIndex[r] == s:
+                result.append(r)
     return result

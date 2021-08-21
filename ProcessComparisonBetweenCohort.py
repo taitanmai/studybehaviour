@@ -32,7 +32,7 @@ from pm4py.evaluation.simplicity import factory as simplicity_factory
 from pm4py.evaluation.replay_fitness import factory as replay_factory
 import os
 os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
-
+basePath = 'D:\\Dataset\\PhD\\'
 #uploads
 dataUpload = pd.read_csv('ca116_uploads.csv')
 dataUpload['date'] = pd.to_datetime(dataUpload.date)
@@ -131,11 +131,15 @@ weeksEventLog = [g for n, g in eventLog_ca116.groupby(pd.Grouper(key='time:times
 
 last_4_weeks_eventLogs = pd.concat([weeksEventLog[11]])
 
-ex1_personal_log_1 = last_4_weeks_eventLogs.loc[last_4_weeks_eventLogs['org:resource'].isin(ex3_excellent.index)]
+ex1_personal_log_1 = pd.read_csv(basePath + 'ca1162019_goodCommunity_eventLog.csv') # last_4_weeks_eventLogs.loc[last_4_weeks_eventLogs['org:resource'].isin(ex3_excellent.index)]
 
-ex1_personal_log_2 = last_4_weeks_eventLogs.loc[last_4_weeks_eventLogs['org:resource'].isin(ex3_weak.index)]
+ex1_personal_log_2 = pd.read_csv(basePath + 'ca1162019_badCommunity_eventLog.csv') # last_4_weeks_eventLogs.loc[last_4_weeks_eventLogs['org:resource'].isin(ex3_weak.index)]
 
 len(ex1_personal_log_2['org:resource'].unique())
+
+ex1_personal_log_1.rename(columns={'pageTypeWeek':'concept:name'}, inplace=True)
+ex1_personal_log_2.rename(columns={'pageTypeWeek':'concept:name'}, inplace=True)
+
 
 #Process Discovery
 
@@ -149,18 +153,51 @@ ex1_personal_log_2_converted = conversion_factory.apply(ex1_personal_log_2)
 from pm4py.algo.discovery.heuristics import factory as heuristics_miner
 from pm4py.visualization.heuristics_net import factory as hn_vis_factory
 
-excellent_heu_net = heuristics_miner.apply_heu(ex1_personal_log_1_converted, parameters={"dependency_thresh": 0.0}, variant="performance")
+excellent_heu_net = heuristics_miner.apply_heu(ex1_personal_log_1_converted, parameters={"dependency_thresh": 0.1})
 gviz = hn_vis_factory.apply(excellent_heu_net)
 hn_vis_factory.view(gviz)
 
 
 
-weak_heu_net = heuristics_miner.apply_heu(ex1_personal_log_2_converted, parameters={"dependency_thresh": 0.0}, variant="performance")
+weak_heu_net = heuristics_miner.apply_heu(ex1_personal_log_2_converted, parameters={"dependency_thresh": 0.0})
 gviz = hn_vis_factory.apply(weak_heu_net)
 hn_vis_factory.view(gviz)
 
 excellent_dfg = excellent_heu_net.dfg
 weak_dfg = weak_heu_net.dfg
+
+#DFG
+from pm4py.algo.discovery.dfg import algorithm as dfg_discovery
+dfg = dfg_discovery.apply(ex1_personal_log_1_converted)
+dfg[list(dfg)[0]]
+a = list(dfg)
+len(list(dfg))
+
+import graphLearning
+graph = graphLearning.createGraphFromCounter(dfg)
+
+
+import community as community_louvain  
+import matplotlib.cm as cm  
+import networkx as nx
+partition = community_louvain.best_partition(graph)
+
+G = graph
+pos = nx.spring_layout(G)
+# color the nodes according to their partition
+cmap = cm.get_cmap('viridis', max(partition.values()) + 1)
+nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=40, 
+                      cmap=cmap, node_color=list(partition.values()))
+nx.draw_networkx_edges(G, pos, alpha=0.5)
+plt.show()
+
+community_louvain.modularity(partition, G)
+
+girvannewman = graphLearning.community_dection_graph(graph, mst=False)
+
+from pm4py.visualization.dfg import visualizer as dfg_visualization
+gviz = dfg_visualization.apply(dfg, log=ex1_personal_log_1_converted, variant=dfg_visualization.Variants.FREQUENCY)
+dfg_visualization.view(gviz)
 
 def fixDfg(dfg, activityList = ['Read_Labsheet','Read_Lecture_Note','Excercise','Check_solution']):
     result = {}
@@ -210,17 +247,6 @@ weak_average = averagePerPersonFixDFG(weak_dfg_fixed,len(ex1_personal_log_2['org
 
 diff_absolute = diffTwoMatrix(excellent_average,weak_average)
 
-#DFG Miner
-from pm4py.algo.discovery.dfg import factory as dfg_factory
-from pm4py.visualization.dfg import factory as dfg_vis_factory
-
-dfg_miner_excellent_dfg = dfg_factory.apply(ex1_personal_log_1_converted,variant="performance")
-gviz = dfg_vis_factory.apply(dfg_miner_excellent_dfg, log=ex1_personal_log_1_converted, variant="performance")
-dfg_vis_factory.view(gviz)
-
-dfg_miner_weak_dfg = dfg_factory.apply(ex1_personal_log_2_converted,variant="performance")
-gviz = dfg_vis_factory.apply(dfg_miner_weak_dfg, log=ex1_personal_log_2_converted, variant="performance")
-dfg_vis_factory.view(gviz)
 
 
 dfg_miner_time_diff_absolute = diffTwoMatrix(dfg_miner_excellent_dfg,dfg_miner_weak_dfg)

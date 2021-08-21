@@ -155,8 +155,8 @@ def predict_proba_all_algorithms_data_ready(PCAdata, excellentList, weakList,pra
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=5) # 80% training and 20% test
     
     xgb = XGBClassifier(
-        learning_rate =0.05,
-        n_estimators=100,
+        learning_rate =0.005,
+        n_estimators=200,
         max_depth=5,
         min_child_weight=5,
         objective= 'binary:logistic'
@@ -169,10 +169,10 @@ def predict_proba_all_algorithms_data_ready(PCAdata, excellentList, weakList,pra
     #         n_estimators=1000
     #     )
     
-    rf=RandomForestClassifier(n_estimators=1000)
+    rf=RandomForestClassifier(n_estimators=200)
     
     gb = GradientBoostingClassifier(
-        n_estimators=1000,
+        n_estimators=200,
         learning_rate=0.05,
         # max_features=2,
         max_depth=5
@@ -181,12 +181,23 @@ def predict_proba_all_algorithms_data_ready(PCAdata, excellentList, weakList,pra
     svmL = svm.SVC(kernel='rbf', probability=True)
     
     dt = DecisionTreeClassifier()
-    # lda = LinearDiscriminantAnalysis()
-    # mlp = MLPClassifier()
+    lda = LinearDiscriminantAnalysis()
+    mlp = MLPClassifier(hidden_layer_sizes=(128,64))
     
-    knn = KNeighborsClassifier(n_neighbors=3)
+    knn = KNeighborsClassifier(n_neighbors=7)
     
-    classifiers = [('XGBoost',xgb),('Logistic Regression',lr), ('Decision Tree',dt),('SVM',svmL),('KNN',knn)]
+    classifiers = [('XGBoost',xgb),
+                   ('Logistic Regression',lr), 
+                   ('Decision Tree',dt),
+                   ('SVM',svmL),
+                   ('KNN',knn),
+                   ('Random Forest',rf),
+                    ('LDA',lda),
+                    ('Multi Layer Nets',mlp),
+                    ('Gradient Boosting',gb)
+                ]
+    # classifiers = [('XGBoost',xgb),('Logistic Regression',lr), ('Decision Tree',dt),('SVM',svmL),('KNN',knn),
+    #            ('LDA',lda)]
     
     # classifiers = [('Logistic Regression',lr),('SVM',svmL)]
     #Train the model using the training sets y_pred=clf.predict(X_test)
@@ -201,6 +212,7 @@ def predict_proba_all_algorithms_data_ready(PCAdata, excellentList, weakList,pra
         scores = cross_val_score(classifier, X, y, cv=10, scoring='roc_auc')
         scores_recall = cross_val_score(classifier, X, y, cv=10, scoring='recall')
         scores_f1 = cross_val_score(classifier, X, y, cv=10, scoring='f1')
+        scores_accuracy = cross_val_score(classifier, X, y, cv=10, scoring='accuracy')
         confusion_matrix1=metrics.confusion_matrix(y_test,y_pred)
         
         accuracy_score = metrics.accuracy_score(y_test, y_pred),
@@ -218,7 +230,7 @@ def predict_proba_all_algorithms_data_ready(PCAdata, excellentList, weakList,pra
             'roc_auc' : roc_auc
         }
         
-        if name not in ['Logistic Regression','Linear Discriminant','Multi Layer Nets','SVM','KNN']:
+        if name not in ['Logistic Regression','LDA','Multi Layer Nets','SVM','KNN']:
             feature_imp = pd.Series(classifier.feature_importances_,index=X.columns).sort_values(ascending=False)
         else:
             feature_imp = 'None'
@@ -228,7 +240,7 @@ def predict_proba_all_algorithms_data_ready(PCAdata, excellentList, weakList,pra
         testingData['y_pred'] = y_pred
         testingData['y_pred_proba_0'] = y_pred_proba[:,0]
         testingData['y_pred_proba_1'] = y_pred_proba[:,1]
-        result.update({name : [metricsResult, feature_imp, classifier,testingData, scores, confusion_matrix1, classification_report1, scores_f1, scores_recall]})
+        result.update({name : [metricsResult, feature_imp, classifier,testingData, scores, confusion_matrix1, classification_report1, scores_f1, scores_recall,scores_accuracy]})
     result.update({'data' : PCAdata})
     return result
 
@@ -288,10 +300,10 @@ def evaluateModelWithData(model,logPage, excellentList, weakList, practice, lect
     
     return [metricsResult, testingData, classification_report, confusion_matrix]
 
-def algorithmComparisonGraph(field, predictionReport, algorithmList, title = ''):
+def algorithmComparisonGraph(field, predictionReport, algorithmList, title = '', y_label = ''):
     if len(algorithmList) == 0:
         algorithmList = predictionReport['algorithm'].unique()
-    plt.figure(figsize=(20,15))
+    plt.figure(figsize=(15,10))
     colorList = ['b','g', 'r', 'c', 'm', 'y', 'k', 'purple']
     for al,color in zip(algorithmList,colorList):
         data_al = predictionReport.loc[predictionReport['algorithm'] == al] 
@@ -301,12 +313,16 @@ def algorithmComparisonGraph(field, predictionReport, algorithmList, title = '')
         # plt.plot(predictionReport['week'], predictionReport['recall'],
         #           'o-', color='orange', label='recall_score', markersize=10)
     plt.title(title,fontsize=20)  
-    plt.xticks(np.arange(1, 13), fontsize=20)
-    plt.yticks(np.arange(0.2, 0.9, 0.1), fontsize=20)
+    plt.xlim(0, 13)
+    plt.ylim(0.5, 0.9)
+    plt.xticks(np.arange(0, 13), fontsize=20)
+    plt.yticks(np.arange(0.5, 0.9, 0.05), fontsize=20)
     plt.xlabel("Week", fontsize=20)
-    plt.ylabel(field + ' Scores', fontsize=20)
+    if y_label == '':
+        y_label = field + ' Scores'
+    plt.ylabel(y_label, fontsize=18)
     plt.grid()
-    plt.legend(loc="lower right", fontsize=18)
+    plt.legend(loc="lower right", fontsize=20)
     plt.show()
     
 def reportPredictiveResult(prediction_transition):
