@@ -44,7 +44,7 @@ import plotly.graph_objects as go
 
 # activityList = ['load','scroll','focus','blur','unload','hashchange','selection']
 
-basePath = 'D:\\Dataset\\PhD\\'
+basePath = 'E:\\Data\\extractedData\\'
 
 #extract event log 
 eventLog_ca116 = pd.read_csv(basePath + 'ca116_eventLog_nonfixed_2019.csv')
@@ -240,6 +240,8 @@ for w in range(0,12):
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
     # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageType.append(LogPageactivityCountByUser)
+
+a = activityDataMatrixWeeks_pageType[11]
     
 for w in range(0,12):
     temp = activityDataMatrixWeeks_pageType[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageType[w].index, right_on=cummulativeExerciseWeeks[w].index)
@@ -271,7 +273,7 @@ for w in range(0,12):
     activityDataMatrixWeeks_pageTypeWeek.append(LogPageactivityCountByUser)
     
 for w in range(0,12):
-    activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv',index=True)
+    activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeek_newPractice_new_w'+str(w)+'.csv',index=True)
 
 #read data page activity
 activityDataMatrixWeeks_pageTypeWeek = []
@@ -373,6 +375,7 @@ for week in range(0,12):
 #eliminate zero column    
 for w in range(0,12):
     transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, (transitionDataMatrixWeeks[w] != 0).any(axis=0)]
+    transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, ~transitionDataMatrixWeeks[w].columns.str.contains('Exam')]
     
 for w in range(0,12):
     transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1162019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv',index=True)
@@ -396,6 +399,41 @@ for w in range(0,12):
     
 for w in range(0,12):
     transitionDataMatrixWeeks[w].index = transitionDataMatrixWeeks[w].index + ['-2019']
+    
+############################################
+#################### try k-means
+from sklearn.cluster import KMeans
+from sklearn import preprocessing
+
+w = 10
+transitionDataMatrixWeeks_directFollow_standardised11 = preprocessing.normalize(transitionDataMatrixWeeks[w], norm='l2')
+transitionDataMatrixWeeks_directFollow_standardised11 = pd.DataFrame(transitionDataMatrixWeeks_directFollow_standardised11, index = transitionDataMatrixWeeks[w].index, columns = transitionDataMatrixWeeks[w].columns)
+
+numberOfClusters = []
+mixedCommunityRate = []
+
+for n in range(2, 11):
+    print('Number of group: ' + str(n))
+    kmeans = KMeans(n_clusters=n, random_state=0).fit(transitionDataMatrixWeeks_directFollow_standardised11)
+    kmeans_result = kmeans.labels_
+    kmeans_result_df = pd.DataFrame(kmeans_result, index=transitionDataMatrixWeeks_directFollow_standardised11.index,columns=['group'])
+    numberOfClusters.append(n)
+    numberOfMixedCommunity = 0
+    for i in range(0,n):
+        kmeans_result_df_group0 = kmeans_result_df.loc[kmeans_result_df['group'] == i,:]
+        a = assessment3A.loc[assessment3A.index.isin(kmeans_result_df_group0.index),['perCorrect3A']]
+        print(i)
+        print(a.mean())
+        print(len(a))
+        excellentRate = len(a.loc[a.index.isin(ex3_excellent.index),:])/len(a)
+        if (excellentRate >= 0.3) and (excellentRate < 0.7):
+            print(excellentRate)
+            numberOfMixedCommunity += 1    
+    mixedCommunityRate.append(numberOfMixedCommunity/n)
+
+
+
+# end k means #######################
 
 transitionDataMatrixWeeks_directFollow_standardised = []    
 for w in range(0,12):
@@ -583,6 +621,7 @@ for w in range(0,12):
     g = graphLearning.createGraphFromCorrDistance(distance_matrix)
     graph_all_weeks_fullyConnected.append(g)
 
+#visualise community detection result
 
 
 import graphLearning
@@ -636,6 +675,11 @@ for w in range(0,12):
     communityListWeeks.append(graphLearning.community_dection_graph(graph_all_weeks_msf[w], most_valuable_edge=graphLearning.most_central_edge, num_comms=num_comms, mst=False))
 
 
+#dendrogram visualisation
+graphLearning.girvanNewManDendrogram(graph_all_weeks_cleaned_correlation[11], ex3_excellent.index, ex3_weak.index, num_comms=num_comms, color_threshold = 30)
+
+
+import graphLearning
 import scikit_posthocs as sp
 aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks_cleaned_correlation[11], assessment3A, 'perCorrect3A')
 aw10t = sp.posthoc_conover(aw10[3][5])
@@ -706,6 +750,48 @@ compareMeanDf_2018 = pd.read_csv(basePath + 'ca1162018_compareMeanDf.csv', index
 a = compareMeanDf_2018.merge(compareMeanDf, left_on = 'Material', right_on = 'Material')
 a = a.round(0)
 a.to_csv(basePath + 'ca11620182019_compareMeanDf.csv',index=True)
+
+
+
+# visualise community detection results
+
+import matplotlib.cm as cm  
+
+G = graph_all_weeks_cleaned_correlation[10].graph
+
+G = graph_all_weeks_cleaned_correlation[11].graph
+edgeList = G.edges()
+
+orderCommunityList = [aw10[6][5][6],aw10[6][5][4],aw10[6][5][3],aw10[6][5][5],aw10[6][5][2],aw10[6][5][7],aw10[6][5][1],aw10[6][5][0]]    
+
+node_color = []
+nodelist = []
+for m in orderCommunityList:
+    for n in m.index:
+        nodelist.append(n)
+        if n in ex3_excellent.index:
+            node_color.append('blue')
+        else:
+            node_color.append('red')
+
+G1 = nx.Graph()
+G1.add_nodes_from(nodelist)
+G1.add_edges_from(edgeList)
+
+plt.figure(figsize=(20,20))
+# pos = nx.planar_layout(G)
+pos = nx.circular_layout(G1)
+# color the nodes according to their partition
+cmap = cm.get_cmap('viridis', 3)
+nx.draw_networkx_nodes(G1, pos, nodelist,  node_size=100, cmap=cmap, node_color=node_color)
+nx.draw_networkx_edges(G1, pos, alpha=1)
+plt.grid(False)
+# nx.draw_networkx_labels(G, pos, font_size=12)
+plt.show()
+
+
+
+
 
 #draw horizontal barchart for compare mean activity
 # create plot
@@ -802,6 +888,7 @@ else:
 # excellent = exellentPractice[w]
 # weak = weakPractice[w]
 
+w = 10
 excellentLine = []
 weakLine = []
 mixedLine = []
@@ -812,14 +899,14 @@ weakLine_not_cleaned = []
 mixedLine_not_cleaned = []
 mixedProportionLine_not_cleaned = []
 
-excellentLine_not_cleaned_super = []
-weakLine_not_cleaned_super = []
-mixedLine_not_cleaned_super = []
-mixedProportionLine_not_cleaned_super = []
+# excellentLine_not_cleaned_super = []
+# weakLine_not_cleaned_super = []
+# mixedLine_not_cleaned_super = []
+# mixedProportionLine_not_cleaned_super = []
 noOfCommunities = []
 upper = 0.65
 lower = 0.35
-for i in range(0, 15):     #num_comms-1):
+for i in range(0, 9):     #num_comms-1):
     a1 = graphLearning.identifyCommunitiesType(communityListWeeks[w][i], excellent, weak)
     excellentLine.append(len(a1.loc[a1['excellentRate'] >= upper]))
     weakLine.append(len(a1.loc[a1['excellentRate'] < lower]))
@@ -832,11 +919,11 @@ for i in range(0, 15):     #num_comms-1):
     mixedLine_not_cleaned.append(len(a2.loc[(a2['excellentRate'] < upper) & (a2['excellentRate'] >= lower)]))
     mixedProportionLine_not_cleaned.append(len(a2.loc[(a2['excellentRate'] <upper) & (a2['excellentRate'] >= lower)])/(len(a2)))
     
-    a3 = graphLearning.identifyCommunitiesType(partitionConvertedList[i], excellent, weak)
-    excellentLine_not_cleaned_super.append(len(a3.loc[a3['excellentRate'] >= upper]))
-    weakLine_not_cleaned_super.append(len(a3.loc[a3['excellentRate'] < lower]))
-    mixedLine_not_cleaned_super.append(len(a3.loc[(a3['excellentRate'] < upper) & (a3['excellentRate'] >= lower)]))
-    mixedProportionLine_not_cleaned_super.append(len(a3.loc[(a3['excellentRate'] <upper) & (a3['excellentRate'] >= lower)])/(len(a3)))
+    # a3 = graphLearning.identifyCommunitiesType(partitionConvertedList[i], excellent, weak)
+    # excellentLine_not_cleaned_super.append(len(a3.loc[a3['excellentRate'] >= upper]))
+    # weakLine_not_cleaned_super.append(len(a3.loc[a3['excellentRate'] < lower]))
+    # mixedLine_not_cleaned_super.append(len(a3.loc[(a3['excellentRate'] < upper) & (a3['excellentRate'] >= lower)]))
+    # mixedProportionLine_not_cleaned_super.append(len(a3.loc[(a3['excellentRate'] <upper) & (a3['excellentRate'] >= lower)])/(len(a3)))
     
     
     noOfCommunities.append(i+2)
@@ -856,7 +943,9 @@ ax.plot(noOfCommunities, mixedProportionLine, label = "Original data")
 # graph[countGraph].plot(noOfCommunities, excellentLine_not_cleaned, label = "No of excellent communities not cleaned data")    
 # graph[countGraph].plot(noOfCommunities, weakLine_not_cleaned, label = "No of weak communities not cleaned data")  
 ax.plot(noOfCommunities, mixedProportionLine_not_cleaned, label = "Cleaned data") 
-ax.plot(noOfCommunities, mixedProportionLine_not_cleaned_super, label = "Louvain") 
+# ax.plot(noOfCommunities, mixedProportionLine_not_cleaned_super, label = "Louvain") 
+
+ax.plot(noOfCommunities, mixedCommunityRate, label = "Kmeans with normalised data") 
 
 ax.legend(loc='upper right',  fontsize = 15)
           
@@ -1124,7 +1213,7 @@ for w in range(0,12):
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
 countGraph = 0
-num_bins = 50
+num_bins = 100
 for w in range(0,12):
     ax = fig.add_subplot(3,4,w+1)
     graph.append(ax)
@@ -1144,13 +1233,13 @@ for w in range(0,12):
 plt.show()
 
 #draw one graph only:
-fig = plt.figure(figsize=(30,20),dpi=120)
+fig = plt.figure(figsize=(20,15))
 ax = fig.subplots()
 ax.set_xlabel('Eigenvalues', fontsize = 30)
 ax.set_ylabel('IPR', fontsize = 30)
 ax.tick_params(axis='both', which='major', labelsize=25)
 ax.tick_params(axis='both', which='minor', labelsize=25)
-ax.set_title('Inverse Participation Ratio week ' + str(w+1), fontsize = 30)
+# ax.set_title('Inverse Participation Ratio week ' + str(w+1), fontsize = 30)
 ax.grid()
 # graph[countGraph].axhline(y=0, color='k')
 # graph[countGraph].axvline(x=0, color='k')
@@ -1159,7 +1248,7 @@ eigenVectorList = pca_result[11].components_
 IPRlist = libRMT.IPRarray(eigenValueList,eigenVectorList)
 ax.axhline(y=IPRlist['IPR'].mean(), color='k', label='mean value of IPR') 
 ax.plot(IPRlist['eigenvalue'], IPRlist['IPR'], '-', color ='blue', label='IPR')
-ax.legend(loc='upper right')
+ax.legend(loc='upper right', fontsize=20)
 plt.show()
 
 #outbounce select
@@ -1203,7 +1292,7 @@ ax = fig.add_subplot(1,1,1)
 
 ax.set_xlabel('eigenvalue λ', fontsize = 15)
 ax.set_ylabel('P(λ)', fontsize = 15)
-ax.set_title('Empirical eigenvalue distribution vs RMT prediction', fontsize = 20)
+# ax.set_title('Empirical eigenvalue distribution vs RMT prediction', fontsize = 20)
 ax.grid()
 # graph[countGraph].axhline(y=0, color='k')
 # graph[countGraph].axvline(x=0, color='k')
@@ -1221,59 +1310,14 @@ min_lambda = densityArray[1]
 max_lambda = densityArray[2]
 ax.text( min_lambda*1.1, -0.08, 'λ-', color = 'black', ha = 'center', va = 'center',fontsize=15)
 ax.text( max_lambda*1.1, -0.08, 'λ+', color = 'black', ha = 'center', va = 'center',fontsize=15)
-countGraph = countGraph + 1           
+         
 plt.show()
 
 #bibplot
-def biplot(score, coeff , y, columns, col1, col2):
-    '''
-    Author: Serafeim Loukas, serafeim.loukas@epfl.ch
-    Inputs:
-       score: the projected data
-       coeff: the eigenvectors (PCs)
-       y: the class labels
-   '''
-    xs = score.loc[:,[col1]] # projection on PC1
-    ys = score.loc[:,[col2]] # projection on PC2
-
-    n = coeff.shape[0] # number of variables
-    plt.figure(figsize=(10,8), dpi=100)
-    classes = np.unique(y)
-    colors = ['g','r','y']
-    markers=['o','^','x']
-    for s,l in enumerate(classes):
-        plt.scatter(score.loc[score['result_exam_1'] == l,[col1]],
-                    score.loc[score['result_exam_1'] == l,[col2]], 
-                    c = colors[s], marker=markers[s]) # color based on group
-
-    plt.xlabel(col1, size=14)
-    plt.ylabel(col2, size=14)
-    limx= int(xs.max()) + 1
-    limy= int(ys.max()) + 1
-    plt.xlim([-limx,limx])
-    plt.ylim([-limy,limy])
-    plt.grid()
-    plt.tick_params(axis='both', which='both', labelsize=14)
-    
-    plt.figure(figsize=(10,8), dpi=100)
-    for i in range(n):
-        #plot as arrows the variable scores (each variable has a score for PC1 and one for PC2)
-        plt.arrow(0, 0, coeff[i,0], coeff[i,1], color = 'k', alpha = 0.9,linestyle = '-',linewidth = 1.5, overhang=0.2)
-        plt.text(coeff[i,0]* 1.05, coeff[i,1] * 1.05, str(columns[i]), color = 'k', ha = 'center', va = 'center',fontsize=9)
-
-    plt.xlabel(col1, size=14)
-    plt.ylabel(col2, size=14)
-    limx= 0.5
-    limy= 0.5
-    plt.xlim([-limx,limx])
-    plt.ylim([-limy,limy])
-    plt.grid()
-    plt.tick_params(axis='both', which='both', labelsize=14)
-
-w = 11    
-biplot(pcaDataWeeks[w],
+w = 10   
+libRMT.biplot(pcaDataWeeks[w],
        np.transpose(pca_result[w].components_[1:3, :]),
-       pcaDataWeeks[w].loc[:,['result_exam_1']], activityDataMatrixWeeks_pageTypeWeek[w].columns, 'pc2','pc3')
+       pcaDataWeeks[w].loc[:,['result_exam_1']], activityDataMatrixWeeks_pageTypeWeek[w].columns, 'pc2','pc3', title=['Lower performing students','Higher performing students'])
 
 #plot loadings
 def plotLoadings(week,pca_result,transitionDataMatrixWeeks, columnsReturn1):
@@ -1292,11 +1336,11 @@ def plotLoadings(week,pca_result,transitionDataMatrixWeeks, columnsReturn1):
         ax.set_xlim(-maxPC, maxPC)
     plt.title('Week '+str(week+1))
     
-plotLoadings(1,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
-plotLoadings(7,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
-plotLoadings(11,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+libRMT.plotLoadings(1,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+libRMT.plotLoadings(7,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+libRMT.plotLoadings(11,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
 
-pc = 3
+pc = 1
 from scipy import stats
 for w in range(0,12):
     if 'pc'+str(pc) in pcaDataWeeks[w].columns:
@@ -1437,3 +1481,233 @@ plt.show()
 
 communityDetectionSuperGraph = graphLearning.community_dection_graph(T, num_comms = len(T._node), mst=False)
 
+
+#---------------------------------------------------------------
+#------------ EXPLORATORY ANALYSIS --------------------------
+#-----------------------------------------------------------------
+
+#extract event log 
+eventLog_ca116 = pd.read_csv(basePath + 'ca116_eventLog_nonfixed_2019.csv')
+# eventLog_ca116 = eventLog_ca116.drop([1160345])
+eventLog_ca116 =eventLog_ca116.loc[eventLog_ca116['time:timestamp'] != ' ']
+eventLog_ca116['time:timestamp'] = pd.to_datetime(eventLog_ca116['time:timestamp'])
+eventLog_ca116 = eventLog_ca116.loc[:, ~eventLog_ca116.columns.str.contains('^Unnamed')]
+# materials = eventLog_ca116.loc[:,['org:resource','concept:name','description']]
+weeksEventLog = [g for n, g in eventLog_ca116.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
+
+#process for new activity
+
+# lectureList = dataProcessing.getLectureList(eventLog_ca116,['html|py'])
+# eventLog_ca116_filtered = eventLog_ca116.loc[eventLog_ca116['description'].str.contains('|'.join(lectureList))]
+eventLog_ca116_filtered = eventLog_ca116.loc[eventLog_ca116['description'].str.contains('.html|.py|#|/einstein/')]
+eventLog_ca116_filtered['pageName'] = eventLog_ca116_filtered['description'].str.extract(r'([^\/][\S]+.html)', expand=False)
+eventLog_ca116_filtered['pageName'] = eventLog_ca116_filtered['pageName'].str.replace('.web','')
+eventLog_ca116_filtered = eventLog_ca116_filtered.drop(eventLog_ca116_filtered.loc[eventLog_ca116_filtered['concept:name'].isin(['click-0','click-1','click-2','click-3'])].index)
+
+eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('correct|incorrect'),'pageName'] = 'Practice'
+eventLog_ca116_filtered.loc[eventLog_ca116_filtered['description'].str.contains('^\/einstein\/'),'pageName'] = 'Practice'
+eventLog_ca116_filtered['pageName'] = eventLog_ca116_filtered['pageName'].fillna('General')
+
+a = eventLog_ca116_filtered.loc[eventLog_ca116_filtered['pageName'] == 'General']
+
+eventLog_ca116_filtered.rename(columns={'concept:instance':'concept:instance1',
+                                   'concept:name':'concept:name1',
+                                   'case:concept:name' : 'case:concept:name1'},  inplace=True)
+eventLog_ca116_filtered['concept:instance'] = eventLog_ca116_filtered['pageName']
+eventLog_ca116_filtered['concept:name'] = eventLog_ca116_filtered['pageName']
+eventLog_ca116_filtered['date'] = eventLog_ca116_filtered['time:timestamp'].dt.date
+
+eventLog_ca116_filtered['case:concept:name'] = eventLog_ca116_filtered['date'].astype(str) + '-' + eventLog_ca116_filtered['org:resource'].astype(str)
+
+
+weeksEventLog_filtered = [g for n, g in eventLog_ca116_filtered.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
+weeksEventLog_filtered = weeksEventLog_filtered[3:15]
+a = [g for n, g in weeksEventLog_filtered[12].groupby(pd.Grouper(key='time:timestamp',freq='D'))]
+
+
+numberOfActivitiesByWeek_df = pd.DataFrame()
+for w in range(0,12):
+    totalActivitiesByDate  =  [g for n, g in weeksEventLog_filtered[w].groupby(pd.Grouper(key='time:timestamp',freq='D'))]
+    weekActivities = []
+    print(len(totalActivitiesByDate))
+    for d in range(0,len(totalActivitiesByDate)):
+        weekActivities.append(len(totalActivitiesByDate[d]))
+    if len(totalActivitiesByDate) < 7:
+        for i in range(0, -len(totalActivitiesByDate) + 7):
+            weekActivities.append(0)
+    numberOfActivitiesByWeek_df['week'+ str(w+1)] = weekActivities
+
+numberOfActivitiesByWeek_df['day'] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+numberOfActivitiesByWeek_df = numberOfActivitiesByWeek_df.set_index('day')
+
+color = ['lightcoral','indianred','brown','firebrick','forestgreen','limegreen','green','darkgreen','mediumpurple','rebeccapurple','blueviolet','indigo']
+lines = numberOfActivitiesByWeek_df.plot.bar(figsize=(15,10), color=color)
+lines.grid()
+
+# stats of activities of each students
+
+
+weeksEventLog_filtered_pageType = []
+for w in range(0,12):
+    tmp = weeksEventLog_filtered[w].merge(materialAccessedByWeek.loc[:,['pageType','ofWeek']], left_on=weeksEventLog_filtered[w].pageName, 
+                                    right_on=materialAccessedByWeek.loc[:,['pageType']].index)    
+    tmp.loc[tmp['pageName'] == 'Practice',['ofWeek']] = w
+    tmp['pageTypeWeek'] = tmp['pageType'] + '_' + tmp['ofWeek'].astype(str)
+    tmp['concept:name'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
+    tmp['concept:instance'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
+    weeksEventLog_filtered_pageType.append(tmp)
+    
+    
+pageName = 'Labsheet'   
+numberOfActivitiesByWeekByStudent_list = []
+for w in range(0,12):
+    tmp = weeksEventLog_filtered_pageType[w].loc[weeksEventLog_filtered_pageType[w]['pageType'] == pageName,:]
+    studentActivitiesByDate = tmp.groupby([ pd.Grouper(key='org:resource'),pd.Grouper(key='time:timestamp',freq='D')]).count()
+    studentActivitiesByDate = studentActivitiesByDate.reset_index()
+    studentActivitiesByDate['Day'] = studentActivitiesByDate['time:timestamp'].dt.day_name()
+    studentActivitiesByDate = studentActivitiesByDate.loc[:,['Day','org:resource','case:concept:name1']]
+    numberOfActivitiesByWeekByStudent_list.append(studentActivitiesByDate)
+
+numberOfActivitiesByWeekByStudent_df = pd.concat(numberOfActivitiesByWeekByStudent_list)
+
+
+numberOfActivitiesByWeekByStudent_df = numberOfActivitiesByWeekByStudent_df.groupby([pd.Grouper('org:resource'),pd.Grouper('Day')]).sum()
+numberOfActivitiesByWeekByStudent_df = numberOfActivitiesByWeekByStudent_df.reset_index()
+
+import seaborn as sns
+
+fig, ax = plt.subplots(figsize=(15,10))
+sns.barplot(x="Day", y="case:concept:name1", ax=ax, data=numberOfActivitiesByWeekByStudent_df)
+ax.grid()
+
+numberOfActivitiesByWeekByStudent_df['result'] = 'NA'
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['org:resource'].isin(ex3_excellent.index),['result']] = 'Higher Performing'
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['org:resource'].isin(ex3_weak.index),['result']] = 'Lower Performing'
+numberOfActivitiesByWeekByStudent_df = numberOfActivitiesByWeekByStudent_df.drop(numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['result'].isin(['NA'])].index)
+numberOfActivitiesByWeekByStudent_df['Ordercustom'] = 0
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['Day'] == 'Monday',['Ordercustom']] = 0
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['Day'] == 'Tuesday',['Ordercustom']] = 1
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['Day'] == 'Wednesday',['Ordercustom']] = 2
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['Day'] == 'Thursday',['Ordercustom']] = 3
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['Day'] == 'Friday',['Ordercustom']] = 4
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['Day'] == 'Saturday',['Ordercustom']] = 5
+numberOfActivitiesByWeekByStudent_df.loc[numberOfActivitiesByWeekByStudent_df['Day'] == 'Sunday',['Ordercustom']] = 6
+numberOfActivitiesByWeekByStudent_df = numberOfActivitiesByWeekByStudent_df.sort_values(['org:resource','Ordercustom'])
+#numberOfActivitiesByWeekByStudent_df = numberOfActivitiesByWeekByStudent_df.drop(['Ordercustom'], axis = 1)
+
+ax = numberOfActivitiesByWeekByStudent_df.boxplot(by=['Ordercustom','result'], figsize=(15,10), layout=(1,1), vert=0, showmeans=True)
+ax.set_title(pageName)
+ax.set_yticklabels(['Mon - Higher','Mon - Lower', 'Tue - Higher', 'Tue - Lower', 'Wed - Higher', 'Wed - Lower', 'Thu - Higher', 'Thu - Lower', 'Fri - Higher', 'Fri - Lower', 'Sat - Higher', 'Sat - Lower', 'Sun - Higher', 'Sun - Lower'])
+
+# data by page type only
+numberOfActivitiesByStudentByPageType_list = []
+for w in range(0,12):
+    tmp = weeksEventLog_filtered_pageType[w]
+    studentActivitiesBypageType = tmp.groupby([ pd.Grouper(key='org:resource'),pd.Grouper(key='pageType')]).count()
+    studentActivitiesBypageType = studentActivitiesBypageType.reset_index()
+    studentActivitiesBypageType = studentActivitiesBypageType.loc[:,['org:resource','pageType','case:concept:name1']]
+    numberOfActivitiesByStudentByPageType_list.append(studentActivitiesBypageType)
+
+numberOfActivitiesByStudentByPageType_df = pd.concat(numberOfActivitiesByStudentByPageType_list)
+numberOfActivitiesByStudentByPageType_df = numberOfActivitiesByStudentByPageType_df.groupby([ pd.Grouper(key='org:resource'),pd.Grouper(key='pageType')]).sum()
+numberOfActivitiesByStudentByPageType_df = numberOfActivitiesByStudentByPageType_df.reset_index()
+numberOfActivitiesByStudentByPageType_df['result'] = 'NA'
+numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(ex3_excellent.index),['result']] = 'Higher Performing'
+numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(ex3_weak.index),['result']] = 'Lower Performing'
+numberOfActivitiesByStudentByPageType_df = numberOfActivitiesByStudentByPageType_df.drop(numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['result'].isin(['NA'])].index)
+
+ax = numberOfActivitiesByStudentByPageType_df.boxplot(by=['pageType','result'], figsize=(15,15),  vert=0, showmeans=True, fontsize=20)
+ax.set_xlim(0, 10000)
+# ax.set_title('Student activities by course learning material type')
+# ax.set_yticklabels(['Mon - Higher','Mon - Lower', 'Tue - Higher', 'Tue - Lower', 'Wed - Higher', 'Wed - Lower', 'Thu - Higher', 'Thu - Lower', 'Fri - Higher', 'Fri - Lower', 'Sat - Higher', 'Sat - Lower', 'Sun - Higher', 'Sun - Lower'])
+
+pageType = 'Lecture'
+
+stats.ttest_ind(numberOfActivitiesByStudentByPageType_df.loc[(numberOfActivitiesByStudentByPageType_df['result']=='Higher Performing')&(numberOfActivitiesByStudentByPageType_df['pageType']==pageType),['case:concept:name1']],
+                    numberOfActivitiesByStudentByPageType_df.loc[(numberOfActivitiesByStudentByPageType_df['result']=='Lower Performing')&(numberOfActivitiesByStudentByPageType_df['pageType']==pageType),['case:concept:name1']], equal_var=False)
+
+
+
+
+#community compare
+
+excellentCommunity = numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(list(aw10[6][5][6].index) + list(aw10[6][5][4].index) +list(aw10[6][5][3].index) + list(aw10[6][5][5].index))]
+excellentCommunity['CommunityType'] = 'Higher Performing'
+
+badCommunity = numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(list(aw10[6][5][0].index) + list(aw10[6][5][1].index) +list(aw10[6][5][7].index) + list(aw10[6][5][2].index))]
+badCommunity['CommunityType'] = 'Lower Performing'
+
+
+
+
+ax  = pd.concat([excellentCommunity, badCommunity]).boxplot(by=['pageType','CommunityType'], figsize=(15,15),  vert=0, showmeans=True, fontsize=20)
+ax.set_xlim(0, 10000)
+
+stats.ttest_ind(excellentCommunity.loc[excellentCommunity['pageType']==pageType,['case:concept:name1']],badCommunity.loc[badCommunity['pageType']==pageType,['case:concept:name1']], equal_var=False)
+
+#cluster compare
+
+excellentCommunity = numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(kmeans_result_df.loc[kmeans_result_df['group'] == 2,:].index)]
+excellentCommunity['CommunityType'] = 'Higher Performing'
+badCommunity = numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(kmeans_result_df.loc[kmeans_result_df['group'] == 5,:].index)]
+badCommunity['CommunityType'] = 'Lower Performing'
+ax  = pd.concat([excellentCommunity, badCommunity]).boxplot(by=['pageType','CommunityType'], figsize=(15,15),  vert=0, showmeans=True, fontsize=20)
+ax.set_xlim(0, 10000)
+
+
+#material items and week day
+
+weeksEventLog_filtered_pageType = []
+for w in range(0,12):
+    tmp = weeksEventLog_filtered[w].merge(materialAccessedByWeek.loc[:,['pageType','ofWeek']], left_on=weeksEventLog_filtered[w].pageName, 
+                                    right_on=materialAccessedByWeek.loc[:,['pageType']].index)    
+    tmp.loc[tmp['pageName'] == 'Practice',['ofWeek']] = w
+    tmp['pageTypeWeek'] = tmp['pageType'] + '_' + tmp['ofWeek'].astype(str)
+    tmp['concept:name'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
+    tmp['concept:instance'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
+    weeksEventLog_filtered_pageType.append(tmp)
+    
+a = weeksEventLog_filtered_pageType[11]
+a1 = weeksEventLog_filtered_pageType[11].groupby([ pd.Grouper(key='pageType'),pd.Grouper(key='time:timestamp',freq='D')]).count()
+a1 = a1.reset_index()
+
+
+fullLogpageType = pd.concat(weeksEventLog_filtered_pageType)
+fullLogpageType = fullLogpageType.loc[:,['time:timestamp','pageType','case:concept:name']]
+fullLogpageType['Day'] = fullLogpageType['time:timestamp'].dt.day_name()
+fullLogpageType = fullLogpageType.groupby([ pd.Grouper(key='pageType'),pd.Grouper(key='time:timestamp',freq='D')]).agg({'case:concept:name':'count', 'Day':'first'})
+fullLogpageType = fullLogpageType.reset_index()
+fullLogpageType = fullLogpageType.loc[:,['pageType','Day','case:concept:name']]
+fullLogpageType = fullLogpageType.groupby([pd.Grouper(key='Day'), pd.Grouper(key='pageType')]).sum()
+fullLogpageType = fullLogpageType.unstack()
+
+color = ['lightcoral','indianred','brown','firebrick','forestgreen','limegreen','green','darkgreen','mediumpurple','rebeccapurple','blueviolet','indigo']
+lines = fullLogpageType.plot.bar(figsize=(15,10))
+lines.grid()
+    
+numberOfActivitiesByWeekByItems_list = []
+for w in range(0,12):
+    itemActivitiesByDate = weeksEventLog_filtered_pageType[w].groupby([ pd.Grouper(key='pageType'),pd.Grouper(key='time:timestamp',freq='D')]).count()
+    itemActivitiesByDate = itemActivitiesByDate.reset_index()
+    itemActivitiesByDate['Day'] = itemActivitiesByDate['time:timestamp'].dt.day_name()
+    itemActivitiesByDate = itemActivitiesByDate.loc[:,['Day','pageType','case:concept:name1']]
+    numberOfActivitiesByWeekByItems_list.append(itemActivitiesByDate)
+
+
+pageType = 'Practice'
+numberOfActivitiesByWeekByItems_df = pd.DataFrame()
+for w in range(0,12):
+    tmp = numberOfActivitiesByWeekByItems_list[w].loc[numberOfActivitiesByWeekByItems_list[w]['pageType'] == pageType,:]
+    tmp1 = tmp['case:concept:name1'].to_list()
+    if len(tmp1) < 7:
+        for i in range(0, -len(tmp1) + 7):
+            tmp1.append(0)
+    
+    numberOfActivitiesByWeekByItems_df['week' + str(w+1)] = tmp1
+    
+numberOfActivitiesByWeekByItems_df['day'] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+numberOfActivitiesByWeekByItems_df = numberOfActivitiesByWeekByItems_df.set_index('day')
+
+color = ['lightcoral','indianred','brown','firebrick','forestgreen','limegreen','green','darkgreen','mediumpurple','rebeccapurple','blueviolet','indigo']
+lines = numberOfActivitiesByWeekByItems_df.plot.bar(figsize=(15,10), color=color, title=pageType)
+lines.grid()

@@ -42,7 +42,7 @@ import itertools
 from plotly.offline import plot
 import plotly.graph_objects as go
 
-basePath = 'D:\\Dataset\\PhD\\'
+basePath = 'E:\\Data\\extractedData\\'
 
 ca1162018_transitionDataMatrixWeeks = []
 ca1162019_transitionDataMatrixWeeks = []
@@ -50,40 +50,52 @@ ca1162020_transitionDataMatrixWeeks = []
 
 for w in range(0,12):
     ca1162018_transitionDataMatrixWeeks.append(pd.read_csv(basePath + 'transitionMatrixStorage_new/transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv'))
-    ca1162018_transitionDataMatrixWeeks[w].user = ca1162018_transitionDataMatrixWeeks[w].user + '-2018'
-    
+#    ca1162018_transitionDataMatrixWeeks[w].user = ca1162018_transitionDataMatrixWeeks[w].user + '-2018'
+    ca1162018_transitionDataMatrixWeeks[w] = ca1162018_transitionDataMatrixWeeks[w].set_index('user')
+      
     ca1162019_transitionDataMatrixWeeks.append(pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv'))
-    ca1162019_transitionDataMatrixWeeks[w].user = ca1162019_transitionDataMatrixWeeks[w].user + '-2019'
-
+#    ca1162019_transitionDataMatrixWeeks[w].user = ca1162019_transitionDataMatrixWeeks[w].user + '-2019'
+    ca1162019_transitionDataMatrixWeeks[w] = ca1162019_transitionDataMatrixWeeks[w].set_index('user')
+    
 for w in range(0,10):
     ca1162020_transitionDataMatrixWeeks.append(pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162020_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv'))
-    ca1162020_transitionDataMatrixWeeks[w].user = ca1162020_transitionDataMatrixWeeks[w].user + '-2020'
-    
-    ca1162018_transitionDataMatrixWeeks[w] = ca1162018_transitionDataMatrixWeeks[w].set_index('user')
-    ca1162019_transitionDataMatrixWeeks[w] = ca1162019_transitionDataMatrixWeeks[w].set_index('user')
+#    ca1162020_transitionDataMatrixWeeks[w].user = ca1162020_transitionDataMatrixWeeks[w].user + '-2020'   
     ca1162020_transitionDataMatrixWeeks[w] = ca1162020_transitionDataMatrixWeeks[w].set_index('user')
     
    
 transitionDataMatrixWeeks = []
-listIndex = []
+# listIndex = []
 for w in range(0,10):
     # ca1162018_transitionDataMatrixWeeks[w]['covid'] = 0
     # ca1162019_transitionDataMatrixWeeks[w]['covid'] = 0
     # ca1162020_transitionDataMatrixWeeks[w]['covid'] = 1
     transitionDataMatrixWeeks.append(pd.concat([ca1162018_transitionDataMatrixWeeks[w],ca1162019_transitionDataMatrixWeeks[w],ca1162020_transitionDataMatrixWeeks[w]], join='inner'))
-    listIndex = listIndex + list(transitionDataMatrixWeeks[w].index)
-
-listIndex = list(set(listIndex))
-reLabelIndex = dataProcessing.reLabelStudentId(listIndex)
-for w in range(0,10):
-    ca1162018_transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(ca1162018_transitionDataMatrixWeeks[w], reLabelIndex)
-    ca1162019_transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(ca1162019_transitionDataMatrixWeeks[w], reLabelIndex)
-    ca1162020_transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(ca1162020_transitionDataMatrixWeeks[w], reLabelIndex)
-    transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(transitionDataMatrixWeeks[w], reLabelIndex)
+    # listIndex = listIndex + list(transitionDataMatrixWeeks[w].index)
 
 transitionDataMatrixWeeks_directFollow_standardised = []    
 for w in range(0,10):
     transitionDataMatrixWeeks_directFollow_standardised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w].T))
+  
+
+# listIndex = list(set(listIndex))
+# reLabelIndex = dataProcessing.reLabelStudentId(listIndex)
+# for w in range(0,10):
+#     ca1162018_transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(ca1162018_transitionDataMatrixWeeks[w], reLabelIndex)
+#     ca1162019_transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(ca1162019_transitionDataMatrixWeeks[w], reLabelIndex)
+#     ca1162020_transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(ca1162020_transitionDataMatrixWeeks[w], reLabelIndex)
+#     transitionDataMatrixWeeks[w] = graphLearning.mapNewLabel(transitionDataMatrixWeeks[w], reLabelIndex)
+
+ca1162018_transitionDataMatrixWeeks_directFollow_standardised = []    
+for w in range(0,12):
+    ca1162018_transitionDataMatrixWeeks_directFollow_standardised.append(dataProcessing.normaliseData(ca1162018_transitionDataMatrixWeeks[w].T))
+    
+ca1162019_transitionDataMatrixWeeks_directFollow_standardised = []    
+for w in range(0,12):
+    ca1162019_transitionDataMatrixWeeks_directFollow_standardised.append(dataProcessing.normaliseData(ca1162019_transitionDataMatrixWeeks[w].T))
+    
+ca1162020_transitionDataMatrixWeeks_directFollow_standardised = []    
+for w in range(0,10):
+    ca1162020_transitionDataMatrixWeeks_directFollow_standardised.append(dataProcessing.normaliseData(ca1162020_transitionDataMatrixWeeks[w].T))
     
 ca1162018_activityDataMatrixWeeks_pageTypeWeek = []
 ca1162019_activityDataMatrixWeeks_pageTypeWeek = []
@@ -91,78 +103,81 @@ ca1162020_activityDataMatrixWeeks_pageTypeWeek = []
 
 for w in range(0,12):
     ca1162018_activityDataMatrixWeeks_pageTypeWeek.append(pd.read_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv', index_col=0))
-    ca1162018_activityDataMatrixWeeks_pageTypeWeek[w].index = ca1162018_activityDataMatrixWeeks_pageTypeWeek[w].index + '-2018'
+#    ca1162018_activityDataMatrixWeeks_pageTypeWeek[w].index = ca1162018_activityDataMatrixWeeks_pageTypeWeek[w].index + '-2018'
     
     ca1162019_activityDataMatrixWeeks_pageTypeWeek.append(pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv', index_col=0))
-    ca1162019_activityDataMatrixWeeks_pageTypeWeek[w].index = ca1162019_activityDataMatrixWeeks_pageTypeWeek[w].index + '-2019'
+#    ca1162019_activityDataMatrixWeeks_pageTypeWeek[w].index = ca1162019_activityDataMatrixWeeks_pageTypeWeek[w].index + '-2019'
 
 for w in range(0,10):
     ca1162020_activityDataMatrixWeeks_pageTypeWeek.append(pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162020_activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv', index_col=0))
-    ca1162020_activityDataMatrixWeeks_pageTypeWeek[w].index = ca1162020_activityDataMatrixWeeks_pageTypeWeek[w].index + '-2020'
+#    ca1162020_activityDataMatrixWeeks_pageTypeWeek[w].index = ca1162020_activityDataMatrixWeeks_pageTypeWeek[w].index + '-2020'
     
 
-activityDataMatrixWeeks_pageTypeWeek = []
-for w in range(0,10):
-    activityDataMatrixWeeks_pageTypeWeek.append(pd.concat([ca1162018_activityDataMatrixWeeks_pageTypeWeek[w], ca1162019_activityDataMatrixWeeks_pageTypeWeek[w], ca1162020_activityDataMatrixWeeks_pageTypeWeek[w]],join='inner'))
+# activityDataMatrixWeeks_pageTypeWeek = []
+# for w in range(0,10):
+#     activityDataMatrixWeeks_pageTypeWeek.append(pd.concat([ca1162018_activityDataMatrixWeeks_pageTypeWeek[w], ca1162019_activityDataMatrixWeeks_pageTypeWeek[w], ca1162020_activityDataMatrixWeeks_pageTypeWeek[w]],join='inner'))
 
-activityDataMatrixWeeks_pageTypeWeek = []
-for w in range(0,10):
-    activityDataMatrixWeeks_pageTypeWeek.append(ca1162020_activityDataMatrixWeeks_pageTypeWeek[w])
+# activityDataMatrixWeeks_pageTypeWeek = []
+# for w in range(0,10):
+#     activityDataMatrixWeeks_pageTypeWeek.append(ca1162020_activityDataMatrixWeeks_pageTypeWeek[w])
 
 
 #score result data
 ex3_excellent_2018 = pd.read_csv(basePath + 'ca1162018_ex3_excellent.csv',index_col=0)
-ex3_excellent_2018.index = ex3_excellent_2018.index + '-2018'
+#ex3_excellent_2018.index = ex3_excellent_2018.index + '-2018'
 ex3_weak_2018 = pd.read_csv(basePath + 'ca1162018_ex3_weak.csv',index_col=0)
-ex3_weak_2018.index = ex3_weak_2018.index + '-2018'
+#ex3_weak_2018.index = ex3_weak_2018.index + '-2018'
 
 ex3_excellent_2019 = pd.read_csv(basePath + 'ca1162019_ex3_excellent.csv',index_col=0)
-ex3_excellent_2019.index = ex3_excellent_2019.index + '-2019'
+#ex3_excellent_2019.index = ex3_excellent_2019.index + '-2019'
 ex3_weak_2019 = pd.read_csv(basePath + 'ca1162019_ex3_weak.csv',index_col=0)
-ex3_weak_2019.index = ex3_weak_2019.index + '-2019'
+#ex3_weak_2019.index = ex3_weak_2019.index + '-2019'
 
 ex3_excellent_2020 = pd.read_csv(basePath + 'ca1162020_ex3_excellent.csv',index_col=0)
-ex3_excellent_2020.index = ex3_excellent_2020.index + '-2020'
+#ex3_excellent_2020.index = ex3_excellent_2020.index + '-2020'
 ex3_weak_2020 = pd.read_csv(basePath + 'ca1162020_ex3_weak.csv',index_col=0)
-ex3_weak_2020.index = ex3_weak_2020.index + '-2020'
+#ex3_weak_2020.index = ex3_weak_2020.index + '-2020'
 
-ex3_excellent = pd.concat([ex3_excellent_2018,ex3_excellent_2019, ex3_excellent_2020])
-ex3_weak = pd.concat([ex3_weak_2018,ex3_weak_2019, ex3_weak_2020])
-assessment3A = pd.concat([ex3_excellent, ex3_weak])
-assessment3A = graphLearning.mapNewLabel(assessment3A, reLabelIndex)
+#ex3_excellent = pd.concat([ex3_excellent_2018,ex3_excellent_2019, ex3_excellent_2020])
+#ex3_weak = pd.concat([ex3_weak_2018,ex3_weak_2019, ex3_weak_2020])
+#assessment3A = pd.concat([ex3_excellent, ex3_weak])
+#assessment3A = graphLearning.mapNewLabel(assessment3A, reLabelIndex)
 
-ex3_excellent_2018 = graphLearning.mapNewLabel(ex3_excellent_2018, reLabelIndex)
-ex3_excellent_2019 = graphLearning.mapNewLabel(ex3_excellent_2019, reLabelIndex)
-ex3_excellent_2020 = graphLearning.mapNewLabel(ex3_excellent_2020, reLabelIndex)
+#ex3_excellent_2018 = graphLearning.mapNewLabel(ex3_excellent_2018, reLabelIndex)
+#ex3_excellent_2019 = graphLearning.mapNewLabel(ex3_excellent_2019, reLabelIndex)
+#ex3_excellent_2020 = graphLearning.mapNewLabel(ex3_excellent_2020, reLabelIndex)
 
-#shuffle the dataframe to avoid same year students stay together:
-import random
-for w in range(0,10):
-    columns = list(transitionDataMatrixWeeks_directFollow_standardised[w].columns)
-    random.shuffle(columns)    
-    transitionDataMatrixWeeks_directFollow_standardised[w] = transitionDataMatrixWeeks_directFollow_standardised[w].loc[:,columns]
+# #shuffle the dataframe to avoid same year students stay together:
+# import random
+# for w in range(0,10):
+#     columns = list(transitionDataMatrixWeeks_directFollow_standardised[w].columns)
+#     random.shuffle(columns)    
+#     transitionDataMatrixWeeks_directFollow_standardised[w] = transitionDataMatrixWeeks_directFollow_standardised[w].loc[:,columns]
     
-#change student position
-columnsList = []
-for i in range(len(communityWeek10[2])):
-    for j in range(len(communityWeek10[2][i])):
-        if communityWeek10[2][i][j] in student2018_excellent.union(student2018_weak):
-            k = 2018
-        elif communityWeek10[2][i][j] in student2019_excellent.union(student2019_weak):
-            k = 2019
-        else:
-            k = 2020
-        columnsList.append([communityWeek10[2][i][j],i,k])
-columnsListDf = pd.DataFrame(columnsList)        
-columnsListDf = columnsListDf.sort_values(by = [1,2])
+# #change student position
+# columnsList = []
+# for i in range(len(communityWeek10[2])):
+#     for j in range(len(communityWeek10[2][i])):
+#         if communityWeek10[2][i][j] in student2018_excellent.union(student2018_weak):
+#             k = 2018
+#         elif communityWeek10[2][i][j] in student2019_excellent.union(student2019_weak):
+#             k = 2019
+#         else:
+#             k = 2020
+#         columnsList.append([communityWeek10[2][i][j],i,k])
+# columnsListDf = pd.DataFrame(columnsList)        
+# columnsListDf = columnsListDf.sort_values(by = [1,2])
 
-columns = list(columnsListDf.loc[:,[0]][0])
-transitionDataMatrixWeeks_directFollow_standardised[9] = transitionDataMatrixWeeks_directFollow_standardised[9].loc[:,columns]
+# columns = list(columnsListDf.loc[:,[0]][0])
+# transitionDataMatrixWeeks_directFollow_standardised[9] = transitionDataMatrixWeeks_directFollow_standardised[9].loc[:,columns]
         
 
     
   
 # correlation processing    
+transitionDataMatrixWeeks_directFollow_standardised = ca1162020_transitionDataMatrixWeeks_directFollow_standardised
+
+
 corrList = []
 corrDistanceList = []
 for w in range(0,10):
@@ -238,7 +253,6 @@ import matplotlib.cm as cm
 G = graph_all_weeks[9].graph
 node_color = []
 nodelist = []
-nodelist = []
 
 for n in G.nodes:
     nodelist.append(n)
@@ -250,6 +264,18 @@ for n in G.nodes:
         node_color.append('green')
     else:
         node_color.append('yellow')
+
+#exellent and weak
+G = graph_all_weeks[9].graph
+node_color = []
+nodelist = []
+
+for n in G.nodes:
+    nodelist.append(n)
+    if n in ex3_excellent_2020.index:
+        node_color.append('blue')
+    else:
+        node_color.append('red')
 
 
     
@@ -364,13 +390,13 @@ plt.legend(fontsize=25)
 
 
 #IPR
-activityDataMatrixWeeks_pageTypeWeek = ca1162020_activityDataMatrixWeeks_pageTypeWeek
+activityDataMatrixWeeks_pageTypeWeek = ca1162018_activityDataMatrixWeeks_pageTypeWeek
 
 pca_result = []
 pcaDataWeeks = []
 columnsReturn2 = []
 
-for w in range(0,10):
+for w in range(0,12):
     # tempData = transitionDataMatrixWeeks[w].loc[:,columns]
     tempData = activityDataMatrixWeeks_pageTypeWeek[w]
     # tempData = tempData.merge(prediction_transition[w+1]['data']['successPassedRate'], left_on = tempData.index, right_on=prediction_transition[w+1]['data']['successPassedRate'].index).set_index('key_0')
@@ -383,7 +409,7 @@ for w in range(0,10):
     columnsReturn2.append(temp[2])
 
    
-for w in range(0,10):
+for w in range(0,12):
     pcaDataWeeks[w]['covidResult'] = 0
     pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ca1162018_activityDataMatrixWeeks_pageTypeWeek[w].index), ['covidResult']] = 0    
     pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ca1162019_activityDataMatrixWeeks_pageTypeWeek[w].index), ['covidResult']] = 1
@@ -399,10 +425,10 @@ for w in range(0,10):
     for c in range(len(communitySparation)):
         pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(communitySparation[c]), ['covidResult']] = c    
 
-for w in range(0,10):
+for w in range(0,12):
     pcaDataWeeks[w]['result'] = 0
-    pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex3_excellent_2020.index), ['result']] = 1
-    pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex3_weak_2020.index), ['result']] = 0
+    pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex3_excellent_2018.index), ['result']] = 1
+    pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex3_weak_2018.index), ['result']] = 0
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
@@ -427,6 +453,7 @@ for w in range(0,10):
 plt.show()
 
 #draw one graph only:
+w = 11
 fig = plt.figure(figsize=(30,20),dpi=120)
 ax = fig.subplots()
 ax.set_xlabel('Eigenvalues', fontsize = 30)
@@ -437,8 +464,8 @@ ax.set_title('Inverse Participation Ratio week ' + str(w+1), fontsize = 30)
 ax.grid()
 # graph[countGraph].axhline(y=0, color='k')
 # graph[countGraph].axvline(x=0, color='k')
-eigenValueList = pca_result[9].explained_variance_
-eigenVectorList = pca_result[9].components_
+eigenValueList = pca_result[w].explained_variance_
+eigenVectorList = pca_result[w].components_
 IPRlist = libRMT.IPRarray(eigenValueList,eigenVectorList)
 ax.axhline(y=IPRlist['IPR'].mean(), color='k', label='mean value of IPR') 
 ax.plot(IPRlist['eigenvalue'], IPRlist['IPR'], '-', color ='blue', label='IPR')
@@ -446,14 +473,14 @@ ax.legend(loc='upper right')
 plt.show()
 
 #outbounce select
-a = libRMT.selectOutboundComponents(pcaDataWeeks[9],pca_result[9].explained_variance_)
+a = libRMT.selectOutboundComponents(pcaDataWeeks[11],pca_result[9].explained_variance_)
 
 #eigenvalues
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
 countGraph = 0
 num_bins = 100
-for w in range(0,12):
+for w in range(0,10):
     ax = fig.add_subplot(3,4,w+1)
     graph.append(ax)
     graph[countGraph].set_xlabel('eigenvalue λ', fontsize = 15)
@@ -480,7 +507,7 @@ for w in range(0,12):
 plt.show()
 
 #week 10 only
-w=9
+w=11
 num_bins = 100
 fig = plt.figure(figsize=(10,10),dpi=120)
 ax = fig.add_subplot(1,1,1)
@@ -509,7 +536,7 @@ ax.text( max_lambda*1.1, -0.08, 'λ+', color = 'black', ha = 'center', va = 'cen
 plt.show()
 
 
-w = 9
+w = 11
 title = {0 : 'Weak 2020', 1:'Excellent 2020', 2:'Class 2020'} 
 libRMT.biplot(pcaDataWeeks[w],
        np.transpose(pca_result[w].components_[[1,2], :]),
@@ -537,7 +564,45 @@ for w in range(0,10):
         
 
 #--------- statistical test if during and before covid come from the same distribution
-x1 = ca1162018_activityDataMatrixWeeks_pageTypeWeek[9]['Practice_1']
-x2 = ca1162019_activityDataMatrixWeeks_pageTypeWeek[9]['Practice_1']
+x1 = ca1162019_activityDataMatrixWeeks_pageTypeWeek[11]['Practice_1']
+x2 = ca1162020_activityDataMatrixWeeks_pageTypeWeek[9]['Practice_1']
 
 stats.ks_2samp(x1, x2)
+
+ca1162018_activityDataMatrixWeeks_pageTypeWeek_1 = ca1162019_activityDataMatrixWeeks_pageTypeWeek
+
+for w in range(0,12):
+    ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w]['result'] = 0
+    ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w].loc[ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w].index.isin(ex3_excellent_2019.index), ['result']] = 1
+    ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w].loc[ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w].index.isin(ex3_weak_2019.index), ['result']] = 0
+
+
+from scipy import stats
+
+for w in range(0, 12):
+    
+    print('Week ' + str(w) + ':')
+    i = 1
+    for c in sorted(ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w].columns):
+        if c != 'result':    
+            a1 = ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w].loc[ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w]['result'] == 1,[c]]
+            b1 = ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w].loc[ca1162018_activityDataMatrixWeeks_pageTypeWeek_1[w]['result'] == 0,[c]]
+            t1, p1 = stats.mannwhitneyu(a1,b1)
+        
+            
+            if p1 <= 0.05:
+                print(str(i) + '. ' + c + ': ' + 't-value: ' + str(t1) + ' p-value: ' + str(p1) + '-- Excellent: ' + str(a1.mean()[0]) + '-- Weak: ' + str(b1.mean()[0]))
+                #print('-- Excellent: ' + str(a1.mean()[0]))
+                #print('-- Weak: ' + str(b1.mean()[0]))
+                i += 1
+
+
+
+
+
+
+
+
+
+
+

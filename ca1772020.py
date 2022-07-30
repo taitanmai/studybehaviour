@@ -42,12 +42,10 @@ import itertools
 from plotly.offline import plot
 import plotly.graph_objects as go
 
-# activityList = ['load','scroll','focus','blur','unload','hashchange','selection']
-
 basePath = 'E:\\Data\\extractedData\\'
 
 #extract event log 
-eventLog_ca177 = pd.read_csv(basePath + 'ca177_eventLog_nonfixed_2019.csv')
+eventLog_ca177 = pd.read_csv(basePath + 'ca177_eventLog_nonfixed_2020.csv')
 eventLog_ca177 =eventLog_ca177.loc[eventLog_ca177['time:timestamp'] != ' ']
 eventLog_ca177['time:timestamp'] = pd.to_datetime(eventLog_ca177['time:timestamp'])
 eventLog_ca177 = eventLog_ca177.loc[:, ~eventLog_ca177.columns.str.contains('^Unnamed')]
@@ -85,28 +83,28 @@ eventLog_ca177_filtered['case:concept:name'] = eventLog_ca177_filtered['date'].a
 weeksEventLog_filtered = [g for n, g in eventLog_ca177_filtered.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
 for i in weeksEventLog_filtered:
     print(len(i))
-weeksEventLog_filtered = weeksEventLog_filtered[20:32]
+weeksEventLog_filtered = weeksEventLog_filtered[14:27]
 
 #------------- Extract number of activities and assign pageType dictionary for later use
 #--------- descriptive analysis
 listMaterials = []
-for w in range(0,12):
+for w in range(0,13):
     listMaterials.append(weeksEventLog_filtered[w]['pageName'].value_counts().rename('week' + str(w+1)))
 materialAccessedByWeek = pd.concat(listMaterials, axis=1)
 
 materialAccessedByWeek['ofWeek'] = ''
 materialAccessedByWeek['pageType'] = ''
 materialAccessedByWeek = materialAccessedByWeek.fillna(0)
-materialAccessedByWeek.to_csv(basePath + 'materialAccessedByWeek_ca177_2019.csv')
+materialAccessedByWeek.to_csv(basePath + 'materialAccessedByWeek_ca177_2020.csv')
 
-materialAccessedByWeek = pd.read_csv(basePath + 'materialAccessedByWeek_ca177_2019.csv', index_col=0)
+materialAccessedByWeek = pd.read_csv(basePath + 'materialAccessedByWeek_ca177_2020.csv', index_col=0)
 
 materialAccessedByWeek['sumOfpageActivity'] = materialAccessedByWeek.sum(axis = 1, skipna = True)
 accessedPageSummary = materialAccessedByWeek.loc[:,['pageType','sumOfpageActivity']].groupby([pd.Grouper('pageType')]).sum()
 accessedPageSummary['perc']= accessedPageSummary['sumOfpageActivity']/accessedPageSummary['sumOfpageActivity'].sum()
 
 weeksEventLog_filtered_pageType = []
-for w in range(0,12):
+for w in range(0,13):
     tmp = weeksEventLog_filtered[w].merge(materialAccessedByWeek.loc[:,['pageType','ofWeek']], left_on=weeksEventLog_filtered[w].pageName, 
                                     right_on=materialAccessedByWeek.loc[:,['pageType']].index)    
     tmp.loc[tmp['pageName'] == 'Practice',['ofWeek']] = w
@@ -115,9 +113,9 @@ for w in range(0,12):
     tmp['concept:instance'] = tmp['pageTypeWeek'] + '*' + tmp['concept:instance1']
     weeksEventLog_filtered_pageType.append(tmp)
     
-a = weeksEventLog_filtered_pageType[6].sort_values(['case:concept:name','time:timestamp'])
+a = weeksEventLog_filtered_pageType[11].sort_values(['case:concept:name','time:timestamp'])
 
-dataUpload = pd.read_csv(basePath + 'ca177_uploads_2019.csv')
+dataUpload = pd.read_csv(basePath + 'ca177_uploads_2020.csv')
 dataUpload['date'] = pd.to_datetime(dataUpload.date)
 
 exUpload = dataUpload.loc[dataUpload['task'].str.match('ex')]
@@ -169,9 +167,6 @@ ex1_weak = assessment1A.loc[(assessment1A['perCorrect1A'] >= 0) & (assessment1A[
 ex2_excellent = assessment2A.loc[(assessment2A['perCorrect2A'] <= 1)&(assessment2A['perCorrect2A'] >= 0.7)]
 ex2_weak = assessment2A.loc[(assessment2A['perCorrect2A'] >= 0) & (assessment2A['perCorrect2A'] < 0.7)]
 
-ex2_excellent.to_csv(basePath + 'transitionMatrixStorage_new/ca1772019_ex2_excellent.csv',index=True)
-ex2_weak.to_csv(basePath + 'transitionMatrixStorage_new/ca1772019_ex2_weak.csv',index=True)
-
 
 nonExUpload = dataUpload.drop(dataUpload.loc[dataUpload['task'].str.match('ex')].index)
 nonExUploadByWeek = [g for n, g in nonExUpload.groupby(pd.Grouper(key='date',freq='W'))]
@@ -213,22 +208,22 @@ assessment_label2A = graphLearning.mapNewLabel(assessment2A, reLabelIndex)
 #activity data matrix construction with newPAgeTYpe
 workingWeekLog = []
 activityDataMatrixWeeks_pageType = []
-for w in range(0,12):
+for w in range(0,13):
     print('Week ' + str(w) + '...')
     workingWeekLog.append(weeksEventLog_filtered_pageType[w])
     LogPageactivityCountByUser =  pd.concat(workingWeekLog) #weeksEventLog_filtered[w]
     LogPageactivityCountByUser = FCAMiner.activityDataMatrixContruct(LogPageactivityCountByUser,'pageType')
     LogPageactivityCountByUser = LogPageactivityCountByUser.fillna(0)
     # LogPageactivityCountByUser = FCAMiner.activityDataMatrixPercentage(LogPageactivityCountByUser)
-    LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
+    # LogPageactivityCountByUser = graphLearning.mapNewLabel(LogPageactivityCountByUser,reLabelIndex)
     activityDataMatrixWeeks_pageType.append(LogPageactivityCountByUser)
     
-for w in range(0,12):
+for w in range(0,13):
     temp = activityDataMatrixWeeks_pageType[w].merge(cummulativeExerciseWeeks[w].loc[:,:], left_on=activityDataMatrixWeeks_pageType[w].index, right_on=cummulativeExerciseWeeks[w].index)
     temp = temp.set_index(['key_0'])
-    if w in [0,1,2,3,4,5]:
+    if w in [0,1,2,3,4,5,6]:
         studentResult = assessment_label1A
-    elif w in [6,7,8,9,10,11]:
+    elif w in [7,8,9,10,11,12]:
         studentResult = assessment_label2A
     temp = temp.merge(studentResult, left_on=temp.index, right_on=studentResult.index)
     temp = temp.set_index(['key_0'])
@@ -240,7 +235,7 @@ a =  activityDataMatrixWeeks_pageType[11].corr()
 
 workingWeekLog = []
 activityDataMatrixWeeks_pageTypeWeek = []
-for w in range(0,12):
+for w in range(0,13):
     print('Week ' + str(w) + '...')
     workingWeekLog.append(weeksEventLog_filtered_pageType[w])
     LogPageactivityCountByUser =  pd.concat(workingWeekLog) #weeksEventLog_filtered[w]
@@ -253,20 +248,19 @@ for w in range(0,12):
 a = activityDataMatrixWeeks_pageTypeWeek[11].columns
 
 #eliminate zero column    
-for w in range(0,12):
+for w in range(0,13):
     activityDataMatrixWeeks_pageTypeWeek[w] = activityDataMatrixWeeks_pageTypeWeek[w].loc[:, (activityDataMatrixWeeks_pageTypeWeek[w] != 0).any(axis=0)]
     activityDataMatrixWeeks_pageTypeWeek[w] = activityDataMatrixWeeks_pageTypeWeek[w].loc[:, ~activityDataMatrixWeeks_pageTypeWeek[w].columns.str.contains('Exam')]
     
-for w in range(0,12):
+for w in range(0,13):
     activityDataMatrixWeeks_pageTypeWeek[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1772019_activityDataMatrixWeeks_pageTypeWeek_newPractice_w'+str(w)+'.csv',index=True)
 
-for w in range(0,12):
-    if w in [0,1,2,3,4,5]:
+for w in range(0,13):
+    if w in [0,1,2,3,4,5,6]:
         studentResult = assessment1A
-    elif w in [6,7,8,9,10,11]:
+    elif w in [7,8,9,10,11,12]:
         studentResult = assessment2A
     activityDataMatrixWeeks_pageTypeWeek[w] = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.isin(studentResult.index)]
-
 
 
     
@@ -301,40 +295,13 @@ examCorrelation.rename(columns={'perCorrect1A':'Lab Exam 1',
                   inplace=True)
 sns.heatmap(examCorrelation, cmap='RdYlGn')
 
-#correlation analysis between exam, practice and activity
-w = 7
-for col1 in pageTypeWeekList:
-    if col1 in activityDataMatrixWeeks_pageTypeWeek[w]:
-        for col2 in ['perCorrect2A']:
-            p = stats.pearsonr(activityDataMatrixWeeks_pageTypeWeek[w][col1].values,activityDataMatrixWeeks_pageTypeWeek[w][col2].values)
-            print(col1 + '-' + col2 + ':' + str(p[0]) + ' - ' +str(p[1]))
-        
-for week in range(0,12):
-    if week in [0,1,2,3,4,5,6]:
-        exellent = ex1_excellent.index
-        weak = ex1_weak.index
-    elif week in [6,7,8,9,10,11]:
-        exellent = ex2_excellent.index
-        w = ex2_weak.index        
-    activityDataMatrixWeeks_pageType[week]['result'] = 2
-    activityDataMatrixWeeks_pageType[week].loc[activityDataMatrixWeeks_pageType[week].index.isin(exellent),['result']] = 1
-    activityDataMatrixWeeks_pageType[week].loc[activityDataMatrixWeeks_pageType[week].index.isin(weak),['result']] = 0
-
-for week in range(0,12):    
-    print('Week: ' + str(week) + '...')
-    for col1 in ['Practice','General','Lecture','Solution','Labsheet']:
-            p = stats.ttest_ind(activityDataMatrixWeeks_pageType[week].loc[activityDataMatrixWeeks_pageType[week]['result']==1,[col1]],
-                                activityDataMatrixWeeks_pageType[week].loc[activityDataMatrixWeeks_pageType[week]['result']==0,[col1]], equal_var=False)
-            print(col1 + ':' + str(p[0]) + ' - ' +str(p[1]))
-
-
 #-------------------------------------------------------------------------------------
 #IPR
    
 pca_result = []
 pcaDataWeeks = []
 columnsReturn2 = []
-for w in range(0,12):
+for w in range(0,13):
     # tempData = transitionDataMatrixWeeks[w].loc[:,columns]
     tempData = activityDataMatrixWeeks_pageTypeWeek[w]
     # tempData = tempData.merge(prediction_transition[w+1]['data']['successPassedRate'], left_on = tempData.index, right_on=prediction_transition[w+1]['data']['successPassedRate'].index).set_index('key_0')
@@ -347,19 +314,19 @@ for w in range(0,12):
     columnsReturn2.append(temp[2])
 
    
-for w in range(0,12):
+for w in range(0,13):
     pcaDataWeeks[w]['result_exam_1'] = 0
-    if w in [0,1,2,3,4,5]:
+    if w in [0,1,2,3,4,5,6]:
         pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex1_excellent.index),['result_exam_1']] = 1
-    elif w in [6,7,8,9,10,11]:
+    elif w in [7,8,9,10,11,12]:
         pcaDataWeeks[w].loc[pcaDataWeeks[w].index.isin(ex2_excellent.index),['result_exam_1']] = 1
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
 countGraph = 0
 num_bins = 50
-for w in range(0,12):
-    ax = fig.add_subplot(3,4,w+1)
+for w in range(0,13):
+    ax = fig.add_subplot(4,4,w+1)
     graph.append(ax)
     graph[countGraph].set_xlabel('Eigenvalues', fontsize = 15)
     graph[countGraph].set_ylabel('IPR', fontsize = 15)
@@ -396,14 +363,14 @@ ax.legend(loc='upper right', fontsize=20)
 plt.show()
 
 #outbounce select
-a = libRMT.selectOutboundComponents(pcaDataWeeks[11],pca_result[11].explained_variance_)
+a = libRMT.selectOutboundComponents(pcaDataWeeks[12],pca_result[12].explained_variance_)
 
 #eigenvalues
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
 countGraph = 0
 num_bins = 100
-for w in range(0,10):
+for w in range(0,12):
     ax = fig.add_subplot(3,4,w+1)
     graph.append(ax)
     graph[countGraph].set_xlabel('eigenvalue λ', fontsize = 15)
@@ -430,7 +397,7 @@ for w in range(0,10):
 plt.show()
 
 #week 12 only
-w=11
+w=12
 fig = plt.figure(figsize=(10,10),dpi=120)
 ax = fig.add_subplot(1,1,1)
 
@@ -454,22 +421,21 @@ min_lambda = densityArray[1]
 max_lambda = densityArray[2]
 ax.text( min_lambda*1.1, -0.08, 'λ-', color = 'black', ha = 'center', va = 'center',fontsize=15)
 ax.text( max_lambda*1.1, -0.08, 'λ+', color = 'black', ha = 'center', va = 'center',fontsize=15)
-      
 plt.show()
 
-
-w = 11 
+import libRMT
+w = 12 
 libRMT.biplot(pcaDataWeeks[w],
-       np.transpose(pca_result[w].components_[1:3, :]),
-       pcaDataWeeks[w].loc[:,['result_exam_1']], activityDataMatrixWeeks_pageTypeWeek[w].columns, 'pc2','pc3', 15,  title=['Lower performing students','Higher performing students'])
+       np.transpose(pca_result[w].components_[0:2, :]),
+       pcaDataWeeks[w].loc[:,['result_exam_1']], activityDataMatrixWeeks_pageTypeWeek[w].columns, 'pc1','pc2', 15,  title=['Lower performing students','Higher performing students'])
 
 #plot loadings
     
 libRMT.plotLoadings(1,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
 libRMT.plotLoadings(7,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
-libRMT.plotLoadings(11,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
+libRMT.plotLoadings(12,pca_result,activityDataMatrixWeeks_pageTypeWeek,columnsReturn2)  
 
-pc = 3
+pc = 1
 from scipy import stats
 for w in range(0,12):
     if 'pc'+str(pc) in pcaDataWeeks[w].columns:
@@ -484,12 +450,40 @@ for w in range(0,12):
         print('-- Weak: ' + str(b1.mean()[0]))  
         
 
+#correlation analysis between exam, practice and activity
+w = 7
+for col1 in pageTypeWeekList:
+    if col1 in activityDataMatrixWeeks_pageTypeWeek[w]:
+        for col2 in ['perCorrect2A']:
+            p = stats.pearsonr(activityDataMatrixWeeks_pageTypeWeek[w][col1].values,activityDataMatrixWeeks_pageTypeWeek[w][col2].values)
+            print(col1 + '-' + col2 + ':' + str(p[0]) + ' - ' +str(p[1]))
+        
+for week in range(0,12):
+    if week in [0,1,2,3,4,5,6]:
+        exellent = ex1_excellent.index
+        weak = ex1_weak.index
+    elif week in [6,7,8,9,10,11]:
+        exellent = ex2_excellent.index
+        w = ex2_weak.index        
+    activityDataMatrixWeeks_pageType[week]['result'] = 2
+    activityDataMatrixWeeks_pageType[week].loc[activityDataMatrixWeeks_pageType[week].index.isin(exellent),['result']] = 1
+    activityDataMatrixWeeks_pageType[week].loc[activityDataMatrixWeeks_pageType[week].index.isin(weak),['result']] = 0
+
+for week in range(0,12):    
+    print('Week: ' + str(week) + '...')
+    for col1 in ['Practice','General','Lecture','Solution','Labsheet']:
+            p = stats.ttest_ind(activityDataMatrixWeeks_pageType[week].loc[activityDataMatrixWeeks_pageType[week]['result']==1,[col1]],
+                                activityDataMatrixWeeks_pageType[week].loc[activityDataMatrixWeeks_pageType[week]['result']==0,[col1]], equal_var=False)
+            print(col1 + ':' + str(p[0]) + ' - ' +str(p[1]))
+
+
 #-------------------------------------------------------------------------------------
+# community analysis
 
 workingWeekLog = []
 transitionDataMatrixWeeks = []
 full_transitionDataMatrixWeeks = []
-for week in range(0,12):
+for week in range(0,13):
     print('Week: ' + str(week) + '...')
     workingWeekLog.append(weeksEventLog_filtered_pageType[week])
     Log = pd.concat(workingWeekLog) 
@@ -499,22 +493,20 @@ for week in range(0,12):
     transitionDataMatrixWeeks.append(tempTransition)
 
 #eliminate zero column    
-for w in range(0,12):
+for w in range(0,13):
     transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, (transitionDataMatrixWeeks[w] != 0).any(axis=0)]
     transitionDataMatrixWeeks[w] = transitionDataMatrixWeeks[w].loc[:, ~transitionDataMatrixWeeks[w].columns.str.contains('Exam')]
     
-for w in range(0,12):
-    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1772019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv',index=True)
-
-  
+for w in range(0,13):
+    transitionDataMatrixWeeks[w].to_csv(basePath + 'transitionMatrixStorage_new/ca1772020_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w'+str(w)+'.csv',index=True)
 
 #read csv iff neeeded
 transitionDataMatrixWeeks = []
-for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1772019_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w' + str(w) + '.csv', index_col=0)
-    if w in [0,1,2,3,4,5]:
+for w in range(0,13):
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1772020_transitionDataMatrixWeeks_direct_accumulated_pageTypeWeek_manyPractice_w' + str(w) + '.csv', index_col=0)
+    if w in [0,1,2,3,4,5,6]:
         studentList = assessment1A.index
-    elif w in [6,7,8,9,10,11]:
+    elif w in [7,8,9,10,11,12]:
         studentList = assessment2A.index 
     temp = temp.loc[temp.index.isin(studentList)]
     # temp = graphLearning.mapNewLabel(temp, reLabelIndex)
@@ -522,13 +514,14 @@ for w in range(0,12):
     # if w == 1:
     #     temp = temp.drop([8])
     transitionDataMatrixWeeks.append(temp) 
-    
+
+
 ############################################
 #################### try k-means
 from sklearn.cluster import KMeans
 from sklearn import preprocessing
 
-w = 10
+w = 11
 transitionDataMatrixWeeks_directFollow_standardised11 = preprocessing.normalize(transitionDataMatrixWeeks[w], norm='l2')
 transitionDataMatrixWeeks_directFollow_standardised11 = pd.DataFrame(transitionDataMatrixWeeks_directFollow_standardised11, index = transitionDataMatrixWeeks[w].index, columns = transitionDataMatrixWeeks[w].columns)
 
@@ -549,7 +542,7 @@ for n in range(2, 11):
         print(a.mean())
         print("Number of students in the group: " + str(len(a)))
         excellentRate = len(a.loc[a.index.isin(ex2_excellent.index),:])/len(a)
-        if (excellentRate >= 0.3) and (excellentRate <= 0.7):
+        if (excellentRate >= 0.35) and (excellentRate <= 0.65):
             print(excellentRate)
             numberOfMixedCommunity += 1    
     mixedCommunityRate.append(numberOfMixedCommunity/n)
@@ -558,12 +551,13 @@ for n in range(2, 11):
 
 # end k means #######################
 
+
 transitionDataMatrixWeeks_directFollow_standardised = []    
-for w in range(0,12):
+for w in range(0,13):
     transitionDataMatrixWeeks_directFollow_standardised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w].T))
 
 transitionDataMatrixWeeks_directFollow_normalised = []    
-for w in range(0,12):
+for w in range(0,13):
     transitionDataMatrixWeeks_directFollow_normalised.append(dataProcessing.normaliseData(transitionDataMatrixWeeks[w], 'normalised'))
 
 
@@ -573,8 +567,9 @@ for w in range(0,12):
     transitionDataMatrixWeeks_directFollow_normalised[w] = transitionDataMatrixWeeks_directFollow_normalised[w].T
     transitionDataMatrixWeeks_directFollow_standardised[w] = transitionDataMatrixWeeks_directFollow_standardised[w].T
 
+
 columns = transitionDataMatrixWeeks[11].columns[10:20]
-pd.plotting.scatter_matrix(transitionDataMatrixWeeks[11].loc[:,columns], alpha=0.2, ax=ax)
+pd.plotting.scatter_matrix(transitionDataMatrixWeeks[11].loc[:,columns], alpha=0.2)
 
 #clean dataset directly
 
@@ -618,7 +613,7 @@ transitionDataMatrixWeeks_directFollow_normalised[11].plot(x = 0 , y= 1, kind="s
 # correlation processing    
 corrList_cleaned = []
 # corrDistanceList = []
-for w in range(0,12):
+for w in range(0,13):
     corrTemp = transitionDataMatrixWeeks_directFollow_standardised_cleaned[w].corr()
     corrList_cleaned.append(corrTemp)
     # corrDistance = (0.5*(1 - corrTemp)).apply(np.sqrt)
@@ -629,14 +624,12 @@ for w in range(0,12):
 #correlation processing    
 corrList_original = []
 # corrDistanceList_dataNormalised = []
-for w in range(0,12):
+for w in range(0,13):
     corrTemp = transitionDataMatrixWeeks_directFollow_standardised[w].corr()
     corrList_original.append(corrTemp)
-    # corrDistance = (0.5*(1 - corrTemp)).apply(np.sqrt)
-    # corrDistanceList_dataNormalised.append(corrDistance)
 
 corrList_cleaned_correlation = []
-for w in range(0,12):
+for w in range(0,13):
     risk_estimators = ml.portfolio_optimization.RiskEstimators()
     tn_relation = transitionDataMatrixWeeks_directFollow_standardised[w].shape[0] / transitionDataMatrixWeeks_directFollow_standardised[w].shape[1]
     # The bandwidth of the KDE kernel
@@ -645,8 +638,11 @@ for w in range(0,12):
     coreTemp = risk_estimators.denoise_covariance(matrix, tn_relation, kde_bwidth=kde_bwidth, detone=False)
     corrList_cleaned_correlation.append(coreTemp)
    
+
+
+    
 graph_all_weeks = []
-for w in range(0,12):
+for w in range(0,13):
     print('Week ' + str(w) + '...')
     matrix = corrList_original[w]
     # risk_estimators = ml.portfolio_optimization.RiskEstimators()
@@ -662,6 +658,7 @@ for w in range(0,12):
     
     detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
     distance_matrix = (0.5*(1 - detoned_matrix_byLib)).apply(np.sqrt)
+    distance_matrix = distance_matrix.fillna(0)
     graphBuild = MST(distance_matrix, 'distance')
     # graphBuild = nx.from_pandas_adjacency(distance_matrix)   
     graph_all_weeks.append(graphBuild)
@@ -683,12 +680,13 @@ for w in range(1,12):
     
     detoned_matrix_byLib = pd.DataFrame(detoned_matrix_byLib, index=matrix.index, columns=matrix.columns)
     distance_matrix = (0.5*(1 - detoned_matrix_byLib)).apply(np.sqrt)
+    distance_matrix = distance_matrix.fillna(0)
     graphBuild = MST(distance_matrix, 'distance')
     # graphBuild = nx.from_pandas_adjacency(distance_matrix)   
     graph_all_weeks_cleaned.append(graphBuild)
     
 graph_all_weeks_cleaned_correlation = []
-for w in range(0,12):
+for w in range(0,13):
     print('Week ' + str(w) + '...')
     matrix = corrList_original[w]
     risk_estimators = ml.portfolio_optimization.RiskEstimators()
@@ -726,6 +724,10 @@ for w in range(0,12):
     g = graphLearning.createGraphFromCorrDistance(distance_matrix)
     graph_all_weeks_fullyConnected.append(g)
 
+excellentList = ex2_excellent.index
+weakList = ex2_weak.index
+graphLearning.visualiseMSTGraph(graph_all_weeks_cleaned_correlation[10], {'Higher performing students' : excellentList, 'Lower performing students': weakList} , reLabelIndex)  
+
     
 
 import graphLearning
@@ -754,32 +756,32 @@ partitionConvertedList = [partitionConverted,partitionConverted,partitionConvert
  
 #community detection
 communityListWeeks = []
-for w in range(0,12):
+for w in range(0,13):
     print('Week ' + str(w) + '...')      
     num_comms = len(graph_all_weeks[w].graph._node)
     communityListWeeks.append(graphLearning.community_dection_graph(graph_all_weeks[w], num_comms=num_comms))
 
 communityListWeeks_not_cleaned = []
-for w in range(0,11):
+for w in range(0,13):
     print('Week ' + str(w) + '...')      
     num_comms = len(graph_all_weeks_cleaned[w].graph._node)
     communityListWeeks_not_cleaned.append(graphLearning.community_dection_graph(graph_all_weeks_cleaned[w],  num_comms=num_comms))
 
 communityListWeeks_cleaned_correlation = []
-for w in range(0,12):
+for w in range(0,13):
     print('Week ' + str(w) + '...')      
     num_comms = len(graph_all_weeks_cleaned_correlation[w].graph._node)
     communityListWeeks_cleaned_correlation.append(graphLearning.community_dection_graph(graph_all_weeks_cleaned_correlation[w], num_comms=num_comms))
 
 
 #dendrogram visualisation
-graphLearning.girvanNewManDendrogram(graph_all_weeks_cleaned_correlation[10], ex2_excellent.index, ex2_weak.index, num_comms=num_comms, color_threshold = 10)
+graphLearning.girvanNewManDendrogram(graph_all_weeks_cleaned_correlation[12], ex2_excellent.index, ex2_weak.index, num_comms=num_comms, color_threshold = 16)
 
 
 import graphLearning
 import scikit_posthocs as sp
 pd.set_option("display.max_rows", None, "display.max_columns", None)
-aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks_cleaned_correlation[10], assessment2A, 'perCorrect2A')
+aw10 = graphLearning.extractAssessmentResultOfCommunities(communityListWeeks_cleaned_correlation[12], assessment2A, 'perCorrect2A')
 aw10t = sp.posthoc_conover(aw10[0][5])
 
 
@@ -796,12 +798,12 @@ for i in range(0,8):
             print(a[i][j])
 
 
-good = 3
-bad = 1
+good = 0
+bad = 4
 
-goodCommunity = aw10[6][2][good]
-badCommunity = aw10[6][2][bad]
-w = 11
+goodCommunity = aw10[3][5][good]
+badCommunity = aw10[3][5][bad]
+w = 12
 extractGoodBadCommunity = activityDataMatrixWeeks_pageTypeWeek[w].loc[activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(goodCommunity.index) | 
                                                                       activityDataMatrixWeeks_pageTypeWeek[w].index.astype(str).isin(badCommunity.index)]
 extractGoodBadCommunity['group'] = 0
@@ -836,8 +838,8 @@ compareMeanDf['week'] = compareMeanDfnewCol[1].astype(str)
 compareMeanDf['MaterialType'] = compareMeanDfnewCol[0]
 compareMeanDf = compareMeanDf.sort_values(['MaterialType','week'])
 
-compareMeanDf.to_csv(basePath + 'ca1772019_compareMeanDf.csv',index=True)
-compareMeanDf_2018 = pd.read_csv(basePath + 'ca1772018_compareMeanDf.csv', index_col=0)
+compareMeanDf.to_csv(basePath + 'ca1772020_compareMeanDf.csv',index=True)
+compareMeanDf_2018 = pd.read_csv(basePath + 'ca1772020_compareMeanDf.csv', index_col=0)
 
 a = compareMeanDf_2018.merge(compareMeanDf, left_on = 'Material', right_on = 'Material', how='outer')
 a = a.round(0)
@@ -864,7 +866,7 @@ plt.legend(fontsize=25)
 
 import matplotlib.cm as cm  
 
-G = graph_all_weeks_cleaned_correlation[10].graph
+G = graph_all_weeks_cleaned_correlation[11].graph
 
 
 edgeList = G.edges()
@@ -877,7 +879,7 @@ for n in G.nodes:
         node_color.append('red')
 
 
-orderCommunityList = [aw10[6][5][3],aw10[6][5][5],aw10[6][5][0],aw10[6][5][7],aw10[6][5][6],aw10[6][5][4],aw10[6][5][2],aw10[6][5][1]]    
+orderCommunityList = [aw10[6][5][0],aw10[6][5][3],aw10[6][5][5],aw10[6][5][2],aw10[6][5][6],aw10[6][5][7],aw10[6][5][4],aw10[6][5][1]]    
 
 node_color = []
 nodelist = []
@@ -907,7 +909,6 @@ plt.grid(False)
 ax=plt.axes()
 ax.set_facecolor('white')
 plt.show()
-
 
 fig = plt.figure(figsize=(40,30),dpi=240)
 graph = []
@@ -964,19 +965,18 @@ for w in range(0,12):
 plt.show()      
 
 #only show in a certain week
-w = 11
+w = 12
 
-if w in [0,1,2,3,4,5]:
+if w in [0,1,2,3,4,5,6]:
     excellent = ex1_excellent.index
     weak = ex1_weak.index
-elif w in [6,7,8,9,10,11]:
+elif w in [7,8,9,10,11,12]:
     excellent = ex2_excellent.index
     weak = ex2_weak.index        
 
 # excellent = exellentPractice[w]
 # weak = weakPractice[w]
 
-w = 10
 excellentLine = []
 weakLine = []
 mixedLine = []
@@ -993,8 +993,8 @@ mixedProportionLine_not_cleaned = []
 # mixedProportionLine_not_cleaned_super = []
 
 noOfCommunities = []
-upper = 0.7
-lower = 0.3
+upper = 0.65
+lower = 0.35
 for i in range(0, 9):     #num_comms-1):
     a1 = graphLearning.identifyCommunitiesType(communityListWeeks[w][i], excellent, weak)
     excellentLine.append(len(a1.loc[a1['excellentRate'] >= upper]))
@@ -1039,7 +1039,6 @@ ax.legend(loc='upper right',  fontsize = 15)
 plt.show()    
 
 
-
 #compare Louvain cleaned data vs original data
 #comparing using Louvain
 
@@ -1049,19 +1048,19 @@ edges1 = list(graph_all_weeks_fullyConnected[11].edges(data=True))
 edges1[1][2]['weight']
 len(graph_all_weeks_fullyConnected[11].nodes)
 
-graphLearning.checkIfUniqueEdges(graph_all_weeks_fullyConnected[9])
+graphLearning.checkIfUniqueEdges(graph_all_weeks_fullyConnected[12])
 A = nx.to_numpy_matrix(graph_all_weeks_fullyConnected[11])
 np.savetxt(basePath + "Course1-2020.csv", A, delimiter=",")
 
 list(partition.keys())
 
 import community as community_louvain
-partition = community_louvain.best_partition(graph_all_weeks_cleaned_correlation[11].graph,resolution=1)
-girvan_newman_cluster = graphLearning.convertGNcommunityToFlattenList(communityListWeeks_cleaned_correlation[11][5], list(partition.keys()))
+partition = community_louvain.best_partition(graph_all_weeks_cleaned_correlation[12].graph,resolution=1)
+girvan_newman_cluster = graphLearning.convertGNcommunityToFlattenList(communityListWeeks_cleaned_correlation[12][6], list(partition.keys()))
 
 
-partition = community_louvain.best_partition(graph_all_weeks[11].graph,resolution=1)
-girvan_newman_cluster = graphLearning.convertGNcommunityToFlattenList(communityListWeeks[11][5], list(partition.keys()))
+partition = community_louvain.best_partition(graph_all_weeks[12].graph,resolution=1)
+girvan_newman_cluster = graphLearning.convertGNcommunityToFlattenList(communityListWeeks[12][6], list(partition.keys()))
 
 
 from sklearn import metrics
@@ -1086,7 +1085,7 @@ partitionConvertedList = [partitionConverted,partitionConverted,partitionConvert
 
 graph_all_weeks_fullyConnected = []
 corrDistance_detoned = []
-for w in range(0,11):
+for w in range(0,13):
     print('Week ' + str(w) + '...')
     matrix = corrList_original[w]
     # risk_estimators = ml.portfolio_optimization.RiskEstimators()
@@ -1111,7 +1110,7 @@ partition_fullyGraphConvertedList = [partition_fullyGraphConverted,partition_ful
                           partition_fullyGraphConverted,partition_fullyGraphConverted,partition_fullyGraphConverted]
 
 
-partition_not_cleaned = community_louvain.best_partition(graph_all_weeks[11].graph)
+partition_not_cleaned = community_louvain.best_partition(graph_all_weeks[12].graph)
 partitionConverted_not_cleaned = graphLearning.convertFlattenListToCommunity(partition_not_cleaned)
 partitionConverted_not_cleaned = [v for k, v in partitionConverted_not_cleaned.items()]
 partitionConverted_not_cleaned = tuple(partitionConverted_not_cleaned)
@@ -1148,7 +1147,7 @@ ex2_weak = graphLearning.mapNewLabel(ex2_weak, reLabelIndex)
 
 excellentList = ex2_excellent.index
 weakList = ex2_weak.index
-graphLearning.visualiseMSTGraph(graph_all_weeks[11], excellentList, weakList , reLabelIndex)  
+graphLearning.visualiseMSTGraph(graph_all_weeks_cleaned_correlation[9], {'Higher performing students' : excellentList, 'Lower performing students': weakList} , reLabelIndex)  
 
 
 
@@ -1279,7 +1278,7 @@ community.greedy_modularity_communities(graph_all_weeks[11].graph)
 #------------ EXPLORATORY ANALYSIS --------------------------
 #-----------------------------------------------------------------
 
-eventLog_ca177 = pd.read_csv(basePath + 'ca177_eventLog_nonfixed_2019.csv')
+eventLog_ca177 = pd.read_csv(basePath + 'ca177_eventLog_nonfixed_2020.csv')
 eventLog_ca177 =eventLog_ca177.loc[eventLog_ca177['time:timestamp'] != ' ']
 eventLog_ca177['time:timestamp'] = pd.to_datetime(eventLog_ca177['time:timestamp'])
 eventLog_ca177 = eventLog_ca177.loc[:, ~eventLog_ca177.columns.str.contains('^Unnamed')]
@@ -1313,10 +1312,14 @@ eventLog_ca177_filtered['case:concept:name'] = eventLog_ca177_filtered['date'].a
 
 
 weeksEventLog_filtered = [g for n, g in eventLog_ca177_filtered.groupby(pd.Grouper(key='time:timestamp',freq='W'))]
-weeksEventLog_filtered = weeksEventLog_filtered[20:32]
+for i in weeksEventLog_filtered:
+    print(len(i))
+
+weeksEventLog_filtered = weeksEventLog_filtered[14:27]
+a = weeksEventLog_filtered[11]
 
 numberOfActivitiesByWeek_df = pd.DataFrame()
-for w in range(0,12):
+for w in range(0,13):
     totalActivitiesByDate  =  [g for n, g in weeksEventLog_filtered[w].groupby(pd.Grouper(key='time:timestamp',freq='D'))]
     weekActivities = []
     print(len(totalActivitiesByDate))
@@ -1330,7 +1333,7 @@ for w in range(0,12):
 numberOfActivitiesByWeek_df['day'] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 numberOfActivitiesByWeek_df = numberOfActivitiesByWeek_df.set_index('day')
 
-color = ['rosybrown','lightcoral','indianred','brown','firebrick','maroon','slateblue','darkslateblue','mediumpurple','rebeccapurple','blueviolet','indigo']
+color = ['rosybrown','lightcoral','indianred','brown','firebrick','red','maroon','slateblue','darkslateblue','mediumpurple','rebeccapurple','blueviolet','indigo']
 lines = numberOfActivitiesByWeek_df.plot.bar(figsize=(15,10), color=color)
 lines.grid()
 
@@ -1413,10 +1416,9 @@ ax = numberOfActivitiesByWeekByStudent_df.boxplot(by=['Ordercustom','result'], f
 ax.set_title(pageName)
 ax.set_yticklabels(['Mon - Higher','Mon - Lower', 'Tue - Higher', 'Tue - Lower', 'Wed - Higher', 'Wed - Lower', 'Thu - Higher', 'Thu - Lower', 'Fri - Higher', 'Fri - Lower', 'Sat - Higher', 'Sat - Lower', 'Sun - Higher', 'Sun - Lower'])
 
-
 # data by page type only
 numberOfActivitiesByStudentByPageType_list = []
-for w in range(0,12):
+for w in range(0,13):
     tmp = weeksEventLog_filtered_pageType[w]
     studentActivitiesBypageType = tmp.groupby([ pd.Grouper(key='org:resource'),pd.Grouper(key='pageType')]).count()
     studentActivitiesBypageType = studentActivitiesBypageType.reset_index()
@@ -1433,15 +1435,13 @@ numberOfActivitiesByStudentByPageType_df = numberOfActivitiesByStudentByPageType
 numberOfActivitiesByStudentByPageType_df = numberOfActivitiesByStudentByPageType_df.drop(numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['pageType'].isin(['Exam'])].index)
 
 ax = numberOfActivitiesByStudentByPageType_df.boxplot(by=['pageType','result'], figsize=(15,15),  vert=0, showmeans=True, fontsize=20)
-ax.set_xlim(0, 10000)
+ax.set_xlim(0, 6000)
 # ax.set_title('Student activities by course learning material type')
 
-
 #community compare
-excellentCommunity = numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(aw10[6][5][3].index)]
+excellentCommunity = numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(aw10[6][5][0].index)]
 excellentCommunity['CommunityType'] = 'Higher Performing'
 badCommunity = numberOfActivitiesByStudentByPageType_df.loc[numberOfActivitiesByStudentByPageType_df['org:resource'].isin(aw10[6][5][1].index)]
 badCommunity['CommunityType'] = 'Lower Performing'
 ax  = pd.concat([excellentCommunity, badCommunity]).boxplot(by=['pageType','CommunityType'], figsize=(15,15),  vert=0, showmeans=True, fontsize=20)
-ax.set_xlim(0, 10000)
-
+ax.set_xlim(0, 6000)

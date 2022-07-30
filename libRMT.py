@@ -43,7 +43,7 @@ def IPRarray(eigenvalueList, eigenvectorList):
         result.append([eVal,IPRcal(eVec)])
     return pd.DataFrame(result, columns=['eigenvalue','IPR'])
 
-def selectOutboundComponents(datasetPC, eigenvalueList, mode='upper_lower'):
+def selectOutboundComponents(datasetPC, eigenvalueList, mode='upper_lower', threshold_var_ratio = 0):
     sampleLength = len(datasetPC)
     featuresLength = len(datasetPC.columns)
     
@@ -52,15 +52,26 @@ def selectOutboundComponents(datasetPC, eigenvalueList, mode='upper_lower'):
     # lambda_min = (1 - np.sqrt(q))**2
     lambda_max = (1 + np.sqrt(q))**2
     lambda_min = (1 - np.sqrt(q))**2
-    pcList = ['pc' + str(i) for i in range(1,26)]
+    pcList = ['pc' + str(i) for i in range(1,featuresLength+1)]
     columnList = []
-    for eVal, pc in zip(eigenvalueList, pcList):
-        if mode == 'upper_lower':
-            if (eVal >= lambda_max) or (eVal <= lambda_min):
-                columnList.append(pc)
-        elif mode == 'upper':
-            if (eVal >= lambda_max):
-                columnList.append(pc)         
+    
+    if threshold_var_ratio == 0:
+        for eVal, pc in zip(eigenvalueList, pcList):
+            if mode == 'upper_lower':
+                if (eVal >= lambda_max) or (eVal <= lambda_min):
+                    columnList.append(pc)
+            elif mode == 'upper':
+                if (eVal >= lambda_max):
+                    columnList.append(pc)
+    else:
+        i = 0
+        accummulate_var_ratio = 0
+        while accummulate_var_ratio < threshold_var_ratio:
+            accummulate_var_ratio += eigenvalueList[i]/sum(eigenvalueList)
+            print(i)
+            print(pcList[i])
+            columnList.append(pcList[i])
+            i += 1            
             
     return datasetPC.loc[:,columnList]
 
@@ -313,7 +324,7 @@ def biplot(score, coeff , y, columns, col1, col2, scaleLoadings=25, classifierCo
     ys = score.loc[:,[col2]] # projection on PC2
 
     n = coeff.shape[0] # number of variables
-    plt.figure(figsize=(10,8), dpi=100)
+    plt.figure(figsize=(15,14))
     classes = np.unique(y)
     colors = ['g','r','y','blue','black','orange']
     markers=['o','^','x','d','p','*']
@@ -325,8 +336,8 @@ def biplot(score, coeff , y, columns, col1, col2, scaleLoadings=25, classifierCo
 
     plt.xlabel(col1, size=14)
     plt.ylabel(col2, size=14)
-    limx= int(xs.max()) + 1
-    limy= int(ys.max()) + 1
+    limx= 7.5 #int(xs.max()) + 3
+    limy= 7.5 #int(ys.max()) + 3
     plt.xlim([-limx,limx])
     plt.ylim([-limy,limy])
     plt.grid()
@@ -352,16 +363,16 @@ def biplot(score, coeff , y, columns, col1, col2, scaleLoadings=25, classifierCo
 
 #plot loadings
 def plotLoadings(week,pca_result,transitionDataMatrixWeeks, columnsReturn1):
-    loadings = pd.DataFrame(pca_result[week].components_[0:8, :], 
+    loadings = pd.DataFrame(pca_result[week].components_[0:3, :], 
                             columns=columnsReturn1[week])
-    maxPC = 1.01 * np.max(np.max(np.abs(loadings.loc[0:8, :])))
-    f, axes = plt.subplots(1, 8, figsize=(20, 20), sharey=True)
+    maxPC = 1.01 * np.max(np.max(np.abs(loadings.loc[0:3, :])))
+    f, axes = plt.subplots(1, 3, figsize=(20, 20), sharey=True)
     for i, ax in enumerate(axes):
         pc_loadings = loadings.loc[i, :]
         colors = ['C0' if l > 0 else 'C1' for l in pc_loadings]
         ax.axvline(color='#888888')
-        ax.axvline(x=0.1, color='#888888')
-        ax.axvline(x=-0.1, color='#888888')
+        # ax.axvline(x=0.1, color='#888888')
+        # ax.axvline(x=-0.1, color='#888888')
         pc_loadings.plot.barh(ax=ax, color=colors)
         ax.set_xlabel(f'PC{i+1}')
         ax.set_xlim(-maxPC, maxPC)

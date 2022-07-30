@@ -80,7 +80,7 @@ def get_eventlogs_by_condition(basePath, module=[],user=[],date=[]):
     return logs
 
 def get_event_log_by_file_2019(basePath, m,u,d):
-    corePath = basePath + '2020-06-29-einstein/activity/' #'2021-03-03-einstein-anon/activity/'
+    corePath = basePath + '2021-03-03-einstein-anon/activity/' #'2020-06-29-einstein/activity/'
     path = corePath + m + '/'
     path += u + '/'
     path += d 
@@ -121,7 +121,7 @@ def get_event_log_by_file_2019(basePath, m,u,d):
     
     
 def get_eventlogs_by_condition_2019(basePath, module=[],user=[],date=[]):
-    corePath = basePath + '2020-06-29-einstein/activity/' #'2021-03-03-einstein-anon/activity/'
+    corePath = basePath +  '2021-03-03-einstein-anon/activity/' # '2020-06-29-einstein/activity/'
     if len(module) == 0:
         path = corePath
         module = os.listdir(path)
@@ -166,6 +166,7 @@ def buildActivityUploadData(activity, allActivities, sourceData):
             actUpload = data1.merge(act, left_on=data1.index, right_on=act.index)
         actUpload = actUpload.set_index('key_0')
     return actUpload
+
 def pearsonGeneration(field,columns,data):
     array = []
     for i in field:   
@@ -239,7 +240,7 @@ def extractUploadsData(basePath, module = [],user=[],date=[]):
                 if os.path.exists(path):
                     files = os.listdir(path)
                     for f in files:                        
-                        if re.search(".report.(21|20|19|18)\d{2}-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9].json$",f):
+                        if re.search(".report.(|21|20|19|18|)\d{2}-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9].json$",f):
                             print(f)
                             temp = getUploadReportContent(m,u,d,f,basePath)
                             resultArray.append(temp)
@@ -250,7 +251,7 @@ def extractUploadsData(basePath, module = [],user=[],date=[]):
 
 #extract upload for 2019 data
 def getUploadReportContent_2019(basePath, m,u,d,file):
-    corePath = basePath +  '2020-06-29-einstein/uploads/' #'einstein-anon/anon/uploads/' #'2021-03-03-einstein-anon/uploads/'
+    corePath = basePath + '2020-06-29-einstein/uploads/' #'2021-03-03-einstein-anon/uploads/'  #'einstein-anon/anon/uploads/'
     path = corePath + d + '/'
     path += m + '/'
     path += u + '/'
@@ -274,7 +275,7 @@ def getUploadReportContent_2019(basePath, m,u,d,file):
         return []
 
 def extractUploadsData_2019(basePath, module = [],user=[],date=[]):
-    corePath = basePath +  '2020-06-29-einstein/uploads/' #'einstein-anon/anon/uploads/'     #'2021-03-03-einstein-anon/uploads/'               
+    corePath = basePath + '2020-06-29-einstein/uploads/' #'2021-03-03-einstein-anon/uploads/'      #'einstein-anon/anon/uploads/      
 
     if len(date) == 0:
         path = corePath
@@ -311,7 +312,7 @@ def extractUploadsData_2019(basePath, module = [],user=[],date=[]):
                 if os.path.exists(path):
                     files = os.listdir(path)
                     for f in files:                        
-                        if re.search(".report.(|20|19|18)\d{2}-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9].json$",f):
+                        if re.search(".report.(|21|20|19|18|)\d{2}-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9].json$",f):
                             print(f)
                             temp = getUploadReportContent_2019(basePath, m,u,d,f)
                             if len(temp) > 0:
@@ -417,22 +418,23 @@ def addConceptPageToLog(dfEventLog):
     dfEventLog['page'] = pages
     return dfEventLog
 
-# basePath = 'D:\\Dataset\\PhD\\'  
-# result = extractUploadsData(basePath, module = ['ca116'])   
+# basePath = 'E:\\Data\\'  
+# extractedData = 'extractedData\\'
+# result = extractUploadsData_2019(basePath, module = ['ca117'])   
 
-# result.to_csv(basePath + "ca116_uploads.csv",index=False)    
+# result.to_csv(basePath + extractedData + "ca117_uploads_2019.csv",index=False)    
 
 
-# module = ['ca167']
+# module = ['ca117']
 # user = [] #get all users
 # date = [] #get all dates
 
 
 # log1 = get_eventlogs_by_condition_2019(basePath, module,user,date=date)
-# 
-# # # # # # a = log1.loc[(log1['concept:instance'].str.contains('is-lab-exam') | log1['concept:instance'].str.contains('upload')) & (log1['org:resource'] == 'u-114b810c95a5ebd746ed7b4ad73634929caa83d8')]
-# # # # # # u-114b810c95a5ebd746ed7b4ad73634929caa83d8
-# log1.to_csv(basePath + "ca167_eventLog_nonfixed_2019.csv",index=False) 
+# # 
+# # # # # # # a = log1.loc[(log1['concept:instance'].str.contains('is-lab-exam') | log1['concept:instance'].str.contains('upload')) & (log1['org:resource'] == 'u-114b810c95a5ebd746ed7b4ad73634929caa83d8')]
+# # # # # # # u-114b810c95a5ebd746ed7b4ad73634929caa83d8
+# log1.to_csv(basePath + extractedData + "ca117_eventLog_nonfixed_2019.csv",index=False) 
 
 
 

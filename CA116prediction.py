@@ -19,7 +19,7 @@ os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 
 import mlfinlab as ml
 from mlfinlab.networks.mst import MST
-basePath = 'D:\\Dataset\\PhD\\'
+basePath = 'E:\\Data\\extractedData\\'
 
 
 #read ca116 2018 data
@@ -126,7 +126,7 @@ for w in range(0,12):
 
 activityDataMatrixWeeks_pageTypeWeek = []    
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_newPractice_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/activityDataMatrixWeeks_pageTypeWeek_newPractice_new_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A.index
     elif w in [4,5,6,7]:
@@ -137,7 +137,7 @@ for w in range(0,12):
     # temp = temp.drop(['Practice_0-Practice_0'],axis=1)
     # if w == 1:
     #     temp = temp.drop([8])
-    activityDataMatrixWeeks_pageTypeWeek.append(temp) 
+    activityDataMatrixWeeks_pageTypeWeek.append(temp)
 
 
 activityDataMatrixWeeks_pageTypeWeek[11].hist(bins=50,density=True)
@@ -246,7 +246,7 @@ for w in range(0,12):
     
 activityDataMatrixWeeks_pageTypeWeek_2019 = []    
 for w in range(0,12):
-    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeek_newPractice_w' + str(w) + '.csv', index_col=0)
+    temp = pd.read_csv(basePath + 'transitionMatrixStorage_new/ca1162019_activityDataMatrixWeeks_pageTypeWeek_newPractice_new_w' + str(w) + '.csv', index_col=0)
     if w in [0,1,2,3]:
         studentList = assessment1A_2019.index
     elif w in [4,5,6,7]:
@@ -737,7 +737,11 @@ for w in range(0,12):
     pca_result.append(pcaResult)
     columnsReturn2.append(temp[2])    
 
+pca_result[11].explained_variance_[0]/sum(pca_result[11].explained_variance_)
+pca_result[11].explained_variance_ratio_[0]
+
 #filtered PCA data
+
 dataForPrediction_outbound = []
 for week in range(0,12):
     dataForPrediction_outbound.append(libRMT.selectOutboundComponents(pcaDataWeeks[week],pca_result[week].explained_variance_))
@@ -745,6 +749,15 @@ for week in range(0,12):
 dataForPrediction_outbound_upper = []
 for week in range(0,12):
     dataForPrediction_outbound_upper.append(libRMT.selectOutboundComponents(pcaDataWeeks[week],pca_result[week].explained_variance_,'upper'))
+
+import libRMT
+dataForPrediction_seventy = []
+for week in range(0,12):
+    dataForPrediction_seventy.append(libRMT.selectOutboundComponents(pcaDataWeeks[week],pca_result[week].explained_variance_, threshold_var_ratio = 0.7))
+
+dataForPrediction_eighty = []
+for week in range(0,12):
+    dataForPrediction_eighty.append(libRMT.selectOutboundComponents(pcaDataWeeks[week],pca_result[week].explained_variance_, threshold_var_ratio = 0.8))
 
 
 #clean first eigen effect data with regression
@@ -770,7 +783,7 @@ for week in range(0,12):
         if c not in outBoundComponents:
             componentToClean.append(c)
     dataDenoiseDetrend_partly.append(libRMT.cleanEigenvectorEffect(activityDataMatrixWeeks_20182019[week],pcaDataWeeks[week], 
-                                                           componentToClean, pca_result[week].components_,0.5,0.8)) 
+                                                           componentToClean, pca_result[week].components_,0.7,0.7)) 
 
 dataDenoiseDetrend_fully = []    
 for week in range(0,12):
@@ -887,43 +900,50 @@ def prediction_implementation(data):
     return prediction_transition, predictionReport_transition
 
 predictionDetail_original, predictionReport_original = prediction_implementation(activityDataMatrixWeeks_20182019)
-predictionDetail_pca, predictionReport_pca = prediction_implementation(pcaDataWeeks)
-predictionDetail_RMTfilter, predictionReport_RMTfilter = prediction_implementation(dataForPrediction_outbound)
+# predictionDetail_pca, predictionReport_pca = prediction_implementation(pcaDataWeeks)
+
+predictionDetail_pca_seventy, predictionReport_pca_seventy = prediction_implementation(dataForPrediction_seventy)
+predictionDetail_pca_eighty, predictionReport_pca_eighty = prediction_implementation(dataForPrediction_eighty)
+
+# predictionDetail_RMTfilter, predictionReport_RMTfilter = prediction_implementation(dataForPrediction_outbound)
 predictionDetail_partlyDenoiseDetrend, predictionReport_partlyDenoiseDetrend = prediction_implementation(dataDenoiseDetrend_partly)
 # predictionDetail_denoise, predictionReport_denoise = prediction_implementation(denoiseData)
 # predictionDetail_detrend, predictionReport_detrend = prediction_implementation(detrendData)
 predictionDetail_fullyDenoiseDetrend, predictionReport_fullyDenoiseDetrend = prediction_implementation(dataDenoiseDetrend_fully)
-predictionDetail_partlyDenoiseDetrend_upper, predictionReport_partlyDenoiseDetrend_upper = prediction_implementation(dataDenoiseDetrend_partly_upper)
-predictionDetail_fullyDenoiseDetrend_upper, predictionReport_fullyDenoiseDetrend_upper = prediction_implementation(dataDenoiseDetrend_fully_upper)
+# predictionDetail_partlyDenoiseDetrend_upper, predictionReport_partlyDenoiseDetrend_upper = prediction_implementation(dataDenoiseDetrend_partly_upper)
+# predictionDetail_fullyDenoiseDetrend_upper, predictionReport_fullyDenoiseDetrend_upper = prediction_implementation(dataDenoiseDetrend_fully_upper)
 
 
-predictionDetail_pca_onFullyClean, predictionReport_pca_onFullyClean = prediction_implementation(pcaDataWeeks_fully_cleanData)
-predictionDetail_RMTfilter_onFullyClean, predictionReport_RMTfilter_onFullyClean = prediction_implementation(dataForPrediction_outbound_upper_on_fully_cleanData)
+# predictionDetail_pca_onFullyClean, predictionReport_pca_onFullyClean = prediction_implementation(pcaDataWeeks_fully_cleanData)
+# predictionDetail_RMTfilter_onFullyClean, predictionReport_RMTfilter_onFullyClean = prediction_implementation(dataForPrediction_outbound_upper_on_fully_cleanData)
 
 
 predictionReport_original['scenario'] = 'Original'
-predictionReport_pca['scenario'] = 'PCA'
-predictionReport_RMTfilter['scenario'] = 'RMT filter'
+# predictionReport_pca['scenario'] = 'PCA'
+# predictionReport_RMTfilter['scenario'] = 'RMT filter'
 predictionReport_partlyDenoiseDetrend['scenario'] = 'Denoise_detrend_partly'
 # predictionReport_denoise['scenario'] = 'Denoise'
 # predictionReport_detrend['scenario'] = 'Detrend'
 predictionReport_fullyDenoiseDetrend['scenario'] = 'Denoise_detrend_fully'
-predictionReport_partlyDenoiseDetrend_upper['scenario'] = 'Denoise_detrend_partly_upper'
-predictionReport_fullyDenoiseDetrend_upper['scenario'] = 'Denoise_detrend_fully_upper'
-predictionReport_pca_onFullyClean['scenario'] = 'PCA_onFullyClean'
-predictionReport_RMTfilter_onFullyClean['scenario'] = 'RMTfilter_onFullyClean'
+# predictionReport_partlyDenoiseDetrend_upper['scenario'] = 'Denoise_detrend_partly_upper'
+# predictionReport_fullyDenoiseDetrend_upper['scenario'] = 'Denoise_detrend_fully_upper'
+# predictionReport_pca_onFullyClean['scenario'] = 'PCA_onFullyClean'
+# predictionReport_RMTfilter_onFullyClean['scenario'] = 'RMTfilter_onFullyClean'
+
+predictionReport_pca_seventy['scenario'] = 'PCA_seventy'
+predictionReport_pca_eighty['scenario'] = 'PCA_eighty'
 
 predictionReport = pd.concat([predictionReport_original,
-                              predictionReport_pca,
-                              predictionReport_RMTfilter,
+                              predictionReport_pca_seventy,
+                              predictionReport_pca_eighty,
                               predictionReport_partlyDenoiseDetrend,
                                # predictionReport_denoise, 
                                # predictionReport_detrend, 
-                              predictionReport_fullyDenoiseDetrend,
+                              predictionReport_fullyDenoiseDetrend
                               # predictionReport_partlyDenoiseDetrend_upper,
                               # predictionReport_fullyDenoiseDetrend_upper,
-                              predictionReport_pca_onFullyClean,
-                              predictionReport_RMTfilter_onFullyClean                              
+                              # predictionReport_pca_onFullyClean,
+                              # predictionReport_RMTfilter_onFullyClean                              
                               ])
 
 predictionReport.to_csv('PredictionReportCA116_1.csv')
@@ -934,10 +954,10 @@ algorithmList = ['Gradient Boosting','KNN','Logistic Regression','SVM','XGBoost'
 predictionReport_fullyDenoiseDetrend = predictionReport.loc[predictionReport['scenario'] == 'Denoise_detrend_fully']
 predictionReport_partlyDenoiseDetrend = predictionReport.loc[predictionReport['scenario'] == 'Denoise_detrend_partly']
 
-PredictionResult.algorithmComparisonGraph('cv_mean_auc',predictionReport_fullyDenoiseDetrend,algorithmList, title_transition, 'cross-validation roc_auc mean')
+PredictionResult.algorithmComparisonGraph('roc_auc',predictionReport_partlyDenoiseDetrend,algorithmList, title_transition, 'cross-validation roc_auc mean')
 
-PredictionResult.algorithmComparisonGraph('accuraccy',predictionReport_RMTfilter_onFullyClean,algorithmList, title_transition)
-PredictionResult.algorithmComparisonGraph('cv_mean_auc',predictionReport_RMTfilter_onFullyClean,algorithmList, title_transition)
+# PredictionResult.algorithmComparisonGraph('accuraccy',predictionReport_RMTfilter_onFullyClean,algorithmList, title_transition)
+# PredictionResult.algorithmComparisonGraph('cv_mean_auc',predictionReport_RMTfilter_onFullyClean,algorithmList, title_transition)
 
 #statistic test prediction performance between data processing strategise
 x1 = predictionReport_detrend.loc[predictionReport_detrend['algorithm'] == 'XGBoost']['cv mean']
@@ -974,20 +994,22 @@ def plotPredictionReport(dataToPlot, title, metricName): #input as an dictonary 
     plt.legend(loc="lower right", fontsize=18)
     plt.show()
 
-metricName = 'roc_auc'
-algorithm = 'XGBoost'
+#'f1_score','precision','recall','roc_auc','cv_mean_auc','cv_mean_f1','cv_mean_recall', 'cv_mean_accuracy'
+
+metricName = 'cv_mean_auc'
+algorithm = 'SVM'
 dataToPlot = {
               'Original' : predictionReport_original.loc[predictionReport_original['algorithm'] == algorithm][metricName],             
-                'PCA' : predictionReport_pca.loc[predictionReport_pca['algorithm'] == algorithm][metricName],
-                'RMT filter' : predictionReport_RMTfilter.loc[predictionReport_RMTfilter['algorithm'] == algorithm][metricName],
+                'PCA at 70%' : predictionReport_pca_seventy.loc[predictionReport_pca_seventy['algorithm'] == algorithm][metricName],
+                'PCA at 80%' : predictionReport_pca_eighty.loc[predictionReport_pca_eighty['algorithm'] == algorithm][metricName],
                  'Denoise_detrend_partly' : predictionReport_partlyDenoiseDetrend.loc[predictionReport_partlyDenoiseDetrend['algorithm'] == algorithm][metricName],
               # 'Denoise' : predictionReport_denoise.loc[predictionReport_denoise['algorithm'] == algorithm][metricName],
               # 'Detrend' : predictionReport_detrend.loc[predictionReport_detrend['algorithm'] == algorithm][metricName],
-              'Denoise_detrend_fully': predictionReport_fullyDenoiseDetrend.loc[predictionReport_fullyDenoiseDetrend['algorithm'] == algorithm][metricName],
+              'Denoise_detrend_fully': predictionReport_fullyDenoiseDetrend.loc[predictionReport_fullyDenoiseDetrend['algorithm'] == algorithm][metricName]
                # 'Denoise_detrend_partly_upper': predictionReport_partlyDenoiseDetrend_upper.loc[predictionReport_partlyDenoiseDetrend_upper['algorithm'] == algorithm][metricName],
                 # 'Denoise_detrend_fully_upper': predictionReport_fullyDenoiseDetrend_upper.loc[predictionReport_fullyDenoiseDetrend_upper['algorithm'] == algorithm][metricName]
-               'PCA_onFullyClean': predictionReport_pca_onFullyClean.loc[predictionReport_pca_onFullyClean['algorithm'] == algorithm][metricName],
-               'RMTfilter_onFullyClean': predictionReport_RMTfilter_onFullyClean.loc[predictionReport_RMTfilter_onFullyClean['algorithm'] == algorithm][metricName]
+               # 'PCA_onFullyClean': predictionReport_pca_onFullyClean.loc[predictionReport_pca_onFullyClean['algorithm'] == algorithm][metricName],
+               # 'RMTfilter_onFullyClean': predictionReport_RMTfilter_onFullyClean.loc[predictionReport_RMTfilter_onFullyClean['algorithm'] == algorithm][metricName]
               } 
 
 plotPredictionReport(dataToPlot, 'Predicting performance among data processing strategies - ' + algorithm ,metricName)   
@@ -1000,19 +1022,21 @@ def statsTest(x1, x2):
 predictionReport = pd.read_csv('PredictionReportCA116_1.csv', index_col=0)
 
 algorithm = ['XGBoost','SVM', 'KNN','Logistic Regression', 'Gradient Boosting']
+# metricName = 'roc_auc'
+#'f1_score','precision','recall','roc_auc','cv_mean_auc','cv_mean_f1','cv_mean_recall', 'cv_mean_accuracy'
 metricName = 'roc_auc'
 dataToBarchart = predictionReport.loc[(predictionReport['week'] == 11) & (predictionReport['algorithm'].isin(algorithm)),['algorithm','scenario',metricName]]
 dataToBarchart = dataToBarchart.set_index(['algorithm','scenario'])[metricName]
 dataToBarchart = dataToBarchart.unstack(level=-1)
-dataToBarchart = dataToBarchart.loc[:,['Original','PCA','RMT filter','Denoise_detrend_fully','Denoise_detrend_partly']]
+dataToBarchart = dataToBarchart.loc[:,['Original','PCA_seventy','PCA_eighty','Denoise_detrend_fully','Denoise_detrend_partly']]
 
 plt.figure(figsize=(15,10))
-plt.ylim(0.5,0.9)
+plt.ylim(0.5,0.82)
 colorList = ['b','g', 'r', 'c', 'm'] #, 'y', 'k', 'purple']
 markerList = ['o','v','s','*','D']
 label = {'Original' : 'Original data',
-         'PCA' : 'PCA data',
-         'RMT filter' : 'PCA data with top principal components',
+         'PCA_seventy' : 'PCA at 70% variance',
+         'PCA_eighty' : 'PCA at 80% variance',
          'Denoise_detrend_fully' : 'Fully cleaned data',
          'Denoise_detrend_partly' : 'Partly cleaned data'
          }
